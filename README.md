@@ -33,16 +33,16 @@
 
 4. We imported following codes.
 
-> Partial Convolution from https://github.com/NVIDIA/partialconv
-> 
-> Fast Fourier Convolution (FFC) from https://github.com/pkumivision/FFC
-> 
-> FFC ResNet Block from https://github.com/advimman/lama
-> 
-> Partial Convolution from https://github.com/NVIDIA/partialconv
-> 
-> Adaptive Sharpness-Aware Minimization (ASAM) from https://github.com/SamsungLabs/ASAM
-> 
+    > Partial Convolution from https://github.com/NVIDIA/partialconv
+    > 
+    > Fast Fourier Convolution (FFC) from https://github.com/pkumivision/FFC
+    > 
+    > FFC ResNet Block from https://github.com/advimman/lama
+    > 
+    > Partial Convolution from https://github.com/NVIDIA/partialconv
+    > 
+    > Adaptive Sharpness-Aware Minimization (ASAM) from https://github.com/SamsungLabs/ASAM
+    > 
 
 5. When using DPR or weighted partial convolution, please cite our paper with proper references.
 
