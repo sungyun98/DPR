@@ -1,4 +1,5 @@
 # Deep Phase Retrieval (DPR)
+DPR is a deep neural network for direct phase retrievals of single-particle diffraction patterns from single-pulse coherent diffraction imaging experiments using X-ray free electron lasers.
 
 ## Requirements
 
