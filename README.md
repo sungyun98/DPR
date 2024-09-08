@@ -47,4 +47,6 @@ DPR is a deep neural network for direct phase retrievals of single-particle diff
 
 5. When using DPR or weighted partial convolution, please cite our paper with proper references.
 
+    > arXiv link will be announced soon.
+
 6. Contact: Sung Yun Lee, sungyun98@postech.ac.kr
