@@ -26,11 +26,11 @@ DPR is a deep neural network for direct phase retrievals of single-particle diff
 
 ## Notes
 
-1. The pretrained network is for the diffraction patterns with oversampling ratios in the range of 10 to 20 and total diffracted intensities in the range of 10<sup>6</sup> to 10<sup>7</sup>.
+1. The pretrained network is for the diffraction patterns with oversampling ratios in the range of 10 to 20 along each axis and total diffracted intensities in the range of 10<sup>6</sup> to 10<sup>7</sup>.
 
 2. Coefficients for the loss function might require to be adjusted for training datasets with different conditions.
 
-3. We used NVIDIA Irregular Mask Dataset from https://research.nvidia.com/labs/adlr/publication/partialconv-inpainting. Please check the file path in 'module.dataset.IrregularMaskDataset' when using 'generate_dataset.ipynb'. Other datasets, EMNIST and CIFAR-100, are from torchvision library.
+3. We used NVIDIA Irregular Mask Dataset from https://research.nvidia.com/labs/adlr/publication/partialconv-inpainting. Please check the file paths in 'module.dataset.IrregularMaskDataset' when using 'generate_dataset.ipynb'. Other datasets, EMNIST and CIFAR-100, are from torchvision library.
 
 4. We imported following codes.
 
@@ -47,6 +47,7 @@ DPR is a deep neural network for direct phase retrievals of single-particle diff
 
 5. When using DPR or weighted partial convolution, please cite our paper with proper references.
 
-    > arXiv link will be announced soon.
+    > https://arxiv.org/abs/2409.15784
+    > 
 
 6. Contact: Sung Yun Lee, sungyun98@postech.ac.kr
