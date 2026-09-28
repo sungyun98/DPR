@@ -227,6 +227,11 @@ RNG_DEPENDENT = {
     "dataset_generate_diffraction": "GenerateDiffraction draws coherence, flux and Poisson/Gaussian noise from the "
                                     "torch RNG; exact values are only reproducible with the same torch version",
 }
+_SW_CENTRED = ("the shared phaseretrieval package centres the ShrinkWrap Gaussian kernel; DPR's copy used an "
+               "ifftshifted kernel that split the Gaussian into lobes about +-ceil(2 * sigma_initial) px apart")
 EXPECTED_CHANGES = {
-    # filled in when a later change intentionally alters a result; see README.md
+    "pr_RAAR_linear_NLL": "DPR's copy summed the NLL over five dimensions of a 4-D tensor and raised IndexError; "
+                          "the shared phaseretrieval package sums over (1, 2, 3)",
+    "pr_HIO_shrinkwrap": _SW_CENTRED,
+    "pr_GPS-R_shrinkwrap": _SW_CENTRED,
 }
