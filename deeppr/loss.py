@@ -3,9 +3,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
-from torchvision import models
-from torchvision.transforms._presets import ImageClassification
+from torchvision import models, transforms
+from torchvision.transforms import InterpolationMode
 
 from .network import _fft2, _ifft2
 
@@ -23,7 +22,12 @@ class VGG19Partial(nn.Module):
     def __init__(self, block_num=5):
         super(VGG19Partial, self).__init__()
         
-        self.preprocess = ImageClassification(crop_size=224, resize_size=224, antialias=True)
+        # same operations as torchvision.transforms._presets.ImageClassification(crop_size=224, resize_size=224)
+        self.preprocess = transforms.Compose([
+            transforms.Resize(224, interpolation=InterpolationMode.BILINEAR, antialias=True),
+            transforms.CenterCrop(224),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
         
         vgg_model = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1)
         vgg_pretrained_features = vgg_model.features
@@ -102,7 +106,7 @@ class VGGLoss(nn.Module):
         # perceptual
         perceptual_loss = 0
         for m in range(len(generated) - self.block_range[0], len(generated)):
-            gt_data = Variable(groundtruth[m].data, requires_grad=False)
+            gt_data = groundtruth[m].detach()
             perceptual_loss += self.loss_fn(generated[m], gt_data)
         
         # style
@@ -110,7 +114,7 @@ class VGGLoss(nn.Module):
             style_loss = 0
             for m in range(len(generated) - self.block_range[0], len(generated)):
                 gen_style = gram_matrix(generated[m])
-                gt_style = gram_matrix(Variable(groundtruth[m].data, requires_grad=False))
+                gt_style = gram_matrix(groundtruth[m].detach())
                 style_loss += self.loss_fn(gen_style, gt_style)
             
             return perceptual_loss, style_loss
