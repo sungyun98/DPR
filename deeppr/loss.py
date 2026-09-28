@@ -4,16 +4,31 @@
 #   Copyright (c) 2019, NVIDIA CORPORATION, BSD 3-Clause License
 #   (LICENSES/partialconv-BSD-3-Clause.txt)
 
+"""Training loss of DPR: L1, gradient, VGG19 perceptual and Fourier terms."""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
 from torchvision import models, transforms
 from torchvision.transforms import InterpolationMode
 
 from .network import _fft2
 
 
-def gram_matrix(input_tensor):
+def gram_matrix(input_tensor: Tensor) -> Tensor:
+    """Return the Gram matrix of feature maps, normalized by their size.
+
+    Parameters
+    ----------
+    input_tensor : torch.Tensor
+        Feature maps of shape ``(B, C, H, W)``.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor of shape ``(B, C, C)`` divided by ``C * H * W``.
+    """
     (b, ch, h, w) = input_tensor.size()
     features = input_tensor.view(b, ch, w * h)
     features_t = features.transpose(1, 2)
@@ -23,10 +38,22 @@ def gram_matrix(input_tensor):
 
 
 class VGG19Partial(nn.Module):
-    def __init__(self, block_num=5):
+    """Frozen feature extractor from the first blocks of VGG19 pretrained on ImageNet.
+
+    The ImageNet weights (``VGG19_Weights.IMAGENET1K_V1``) are downloaded by torchvision on
+    first use.
+
+    Parameters
+    ----------
+    block_num : int, default 5
+        Number of VGG19 blocks (1 to 5) to evaluate.
+    """
+
+    def __init__(self, block_num: int = 5) -> None:
         super().__init__()
 
-        # same operations as torchvision.transforms._presets.ImageClassification(crop_size=224, resize_size=224)
+        # same operations as
+        # torchvision.transforms._presets.ImageClassification(crop_size=224, resize_size=224)
         self.preprocess = transforms.Compose(
             [
                 transforms.Resize(224, interpolation=InterpolationMode.BILINEAR, antialias=True),
@@ -67,7 +94,20 @@ class VGG19Partial(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> list[Tensor]:
+        """Extract the features of each block.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Real single-channel images of shape ``(N, 1, H, W)``; they are repeated to three
+            channels, resized to 224 x 224 and normalized as ImageNet images.
+
+        Returns
+        -------
+        list of torch.Tensor
+            Outputs of blocks 1 to ``block_num``.
+        """
         x = torch.cat((x, x, x), dim=1)
         x = self.preprocess(x)
 
@@ -97,7 +137,24 @@ class VGG19Partial(nn.Module):
 
 
 class VGGLoss(nn.Module):
-    def __init__(self, block_range=(3, 5), style=False, device="cpu"):
+    """Perceptual (and optionally style) L1 loss on VGG19 features.
+
+    Parameters
+    ----------
+    block_range : tuple of int, default (3, 5)
+        ``(k, n)``: evaluate the first ``n`` VGG19 blocks and compare the last ``k`` of them.
+    style : bool, default False
+        Also return the style loss (L1 distance of Gram matrices).
+    device : str, int or torch.device, default 'cpu'
+        Device of the VGG19 network.
+    """
+
+    def __init__(
+        self,
+        block_range: tuple[int, int] = (3, 5),
+        style: bool = False,
+        device: str | int | torch.device = "cpu",
+    ) -> None:
         super().__init__()
 
         self.block_range = block_range
@@ -105,7 +162,21 @@ class VGGLoss(nn.Module):
         self.vgg19partial = VGG19Partial(block_num=self.block_range[1]).eval().to(device)
         self.loss_fn = nn.L1Loss()
 
-    def forward(self, output, target):
+    def forward(self, output: Tensor, target: Tensor) -> Tensor | tuple[Tensor, Tensor]:
+        """Compute the loss.
+
+        Parameters
+        ----------
+        output, target : torch.Tensor
+            Real images of shape ``(N, 1, H, W)``; no gradient flows through ``target``.
+
+        Returns
+        -------
+        perceptual_loss : torch.Tensor
+            Scalar tensor.
+        style_loss : torch.Tensor
+            Scalar tensor, returned only if ``style`` is True.
+        """
         with torch.no_grad():
             groundtruth = self.vgg19partial(target)
         generated = self.vgg19partial(output)
@@ -130,13 +201,51 @@ class VGGLoss(nn.Module):
 
 
 class CombinedLoss(nn.Module):
-    def __init__(self, coeffs=(1, 10, 0.1, 0.01), device="cpu"):
+    """Training loss of DPR.
+
+    The weighted sum of the L1 loss, the gradient loss (`grad_loss`), the VGG19 perceptual
+    loss of the last four blocks (`VGGLoss`) and the Fourier amplitude loss (`fourier_loss`),
+    computed after aligning the output to the target (`align_obj`).
+
+    Parameters
+    ----------
+    coeffs : tuple of float, default (1, 10, 0.1, 0.01)
+        Weights of the L1, gradient, perceptual and Fourier terms.
+    device : str, int or torch.device, default 'cpu'
+        Device of the VGG19 network.
+    """
+
+    def __init__(
+        self,
+        coeffs: tuple[float, float, float, float] = (1, 10, 0.1, 0.01),
+        device: str | int | torch.device = "cpu",
+    ) -> None:
         super().__init__()
         self.VGGLoss = VGGLoss(block_range=(4, 5), style=False, device=device)
         self.coeffs = coeffs
 
     @staticmethod
-    def align_obj(output, target, limit=32):
+    def align_obj(output: Tensor, target: Tensor, limit: int = 32) -> Tensor:
+        """Align objects to targets by translation and 180-degree rotation.
+
+        For each object, the translation (up to ``limit`` pixels) and orientation that
+        maximize the cross-correlation with its target are applied by a circular shift.
+
+        Parameters
+        ----------
+        output : torch.Tensor
+            Real objects of shape ``(N, 1, 64, 64)``; modified in place.
+        target : torch.Tensor
+            Real targets of shape ``(N, 1, 64, 64)``.
+        limit : int, default 32
+            Maximum shift in pixels. The fallback used when no exact maximum is found
+            assumes ``limit=32``.
+
+        Returns
+        -------
+        torch.Tensor
+            The aligned ``output``.
+        """
         N = output.shape[0]
 
         xcorr = F.conv2d(output.reshape(1, N, 64, 64), target, padding=limit, groups=N).squeeze(0)
@@ -171,7 +280,20 @@ class CombinedLoss(nn.Module):
         return output
 
     @staticmethod
-    def grad_loss(output, target):
+    def grad_loss(output: Tensor, target: Tensor) -> Tensor:
+        """Return the L1 difference of the image gradients on the object pixels.
+
+        Parameters
+        ----------
+        output, target : torch.Tensor
+            Real images of shape ``(N, 1, H, W)``; the loss uses the pixels where
+            ``target > 0``.
+
+        Returns
+        -------
+        torch.Tensor
+            Scalar tensor: sum of the mean absolute differences along both axes.
+        """
         grad = torch.gradient(output, dim=(-2, -1))
         grad_gt = torch.gradient(target, dim=(-2, -1))
         grad_loss = torch.mean(
@@ -180,7 +302,25 @@ class CombinedLoss(nn.Module):
         return grad_loss
 
     @staticmethod
-    def fourier_loss(output, target, log):
+    def fourier_loss(output: Tensor, target: Tensor, log: bool) -> Tensor:
+        """Compare the diffraction amplitudes of output and target.
+
+        Both are zero-padded to 512 x 512 (from 64 x 64) before the Fourier transform.
+
+        Parameters
+        ----------
+        output, target : torch.Tensor
+            Real objects of shape ``(N, 1, 64, 64)``.
+        log : bool
+            If True, L1 difference of the log10 intensities; otherwise the normalized L1
+            difference of the amplitudes (the R-factor of phase retrieval), averaged over the
+            batch.
+
+        Returns
+        -------
+        torch.Tensor
+            Scalar tensor.
+        """
         output_f = torch.abs(_fft2(F.pad(output, (224, 224, 224, 224))))
         target_f = torch.abs(_fft2(F.pad(target, (224, 224, 224, 224))))
         if log:  # Log-scaled intensity difference (L1)
@@ -194,7 +334,23 @@ class CombinedLoss(nn.Module):
             )
         return loss
 
-    def forward(self, output, target, align_limit=32):
+    def forward(self, output: Tensor, target: Tensor, align_limit: int = 32) -> Tensor:
+        """Compute the combined loss.
+
+        Parameters
+        ----------
+        output : torch.Tensor
+            Network output of shape ``(N, 1, 64, 64)``; aligned in place.
+        target : torch.Tensor
+            Target objects of shape ``(N, 1, 64, 64)``.
+        align_limit : int, default 32
+            Maximum shift of `align_obj`; negative values disable the alignment.
+
+        Returns
+        -------
+        torch.Tensor
+            Scalar loss.
+        """
         if align_limit >= 0:
             # object align (translation & 180 deg rotation)
             output = self.align_obj(output, target, limit=align_limit)

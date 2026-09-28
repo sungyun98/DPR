@@ -1,5 +1,10 @@
 """Train the DPR network with DistributedDataParallel on one or more nodes.
 
+The training and validation sets are the HDF5 files written by ``generate_dataset.ipynb``
+(``./datasets/dataset_train_n96k.h5`` and ``./datasets/dataset_valid_n12k.h5``). Rank 0
+writes ``./checkpoint.pt`` every 10 epochs, from which a restarted run resumes, and
+``./model_min.pt`` whenever the validation loss reaches a new minimum after epoch 120.
+
 Launch with torchrun, one process per GPU::
 
     torchrun
@@ -30,13 +35,15 @@ import torch.distributed as dist
 import torch.nn as nn
 from torch.distributed import destroy_process_group, init_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from deeppr import ASAM, CombinedLoss, CosineAnnealingWarmUpRestarts, CustomDataset, Network
 
 
-def ddp_setup():
+def ddp_setup() -> None:
+    """Initialize the NCCL process group and select the GPU of this process (LOCAL_RANK)."""
     init_process_group(backend="nccl")
     torch.backends.cudnn.benchmark = True  # enable cuDNN library benchmark
     # for debugging, enable anomaly detection with torch.autograd.set_detect_anomaly(True)
@@ -44,7 +51,37 @@ def ddp_setup():
 
 
 class Trainer:
-    def __init__(self, model, dl_train, dl_valid, optimizer, epochs_total, step_ckp, path_ckp):
+    """Distributed training loop with ASAM, gradient clipping and checkpoints.
+
+    The loss is `CombinedLoss` on the output with ``false_scale=True``. The learning rate
+    follows `CosineAnnealingWarmUpRestarts` (restart period ``epochs_total // 15``, doubling).
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Network to train; moved to the GPU of this process and wrapped in DDP.
+    dl_train, dl_valid : torch.utils.data.DataLoader
+        Training and validation loaders with a `DistributedSampler`.
+    optimizer : torch.optim.Optimizer
+        Optimizer of the model parameters.
+    epochs_total : int
+        Total number of epochs.
+    step_ckp : int
+        Interval in epochs between checkpoints.
+    path_ckp : str
+        Checkpoint path; training resumes from it if it exists.
+    """
+
+    def __init__(
+        self,
+        model: nn.Module,
+        dl_train: DataLoader,
+        dl_valid: DataLoader,
+        optimizer: Optimizer,
+        epochs_total: int,
+        step_ckp: int,
+        path_ckp: str,
+    ) -> None:
 
         self.world_size = dist.get_world_size()
         self.local_rank = int(os.environ["LOCAL_RANK"])
@@ -89,7 +126,10 @@ class Trainer:
 
         self.model = DDP(model, device_ids=[self.local_rank])
 
-    def _run_batch(self, input, target, mask, train=True):
+    def _run_batch(
+        self, input: torch.Tensor, target: torch.Tensor, mask: torch.Tensor, train: bool = True
+    ) -> torch.Tensor:
+        """Compute the loss of one batch and, if ``train``, update the model."""
         self.optimizer.zero_grad()
         input = input * mask
         output = self.model(input, mask, false_scale=True)
@@ -123,7 +163,8 @@ class Trainer:
 
         return loss.data
 
-    def _run_epoch(self, epoch):
+    def _run_epoch(self, epoch: int) -> torch.Tensor:
+        """Train and validate for one epoch; return the mean losses ``[train, valid]``."""
         # train
         self.model.train()
         self.dl_train.sampler.set_epoch(epoch)
@@ -149,7 +190,8 @@ class Trainer:
 
         return torch.cat((loss_train, loss_valid))
 
-    def _save_checkpoint(self, epoch):
+    def _save_checkpoint(self, epoch: int) -> None:
+        """Save the epoch, loss history, model and optimizer states to ``path_ckp``."""
         torch.save(
             {
                 "epochs_run": epoch,
@@ -161,12 +203,14 @@ class Trainer:
         )
         print(f"[{time.ctime()}] Saving checkpoint at {self.path_ckp}")
 
-    def _save_model_only(self, epoch, path_model="./model.pt"):
+    def _save_model_only(self, epoch: int, path_model: str = "./model.pt") -> None:
+        """Save the epoch and the model state (the format of ``pretrained/``)."""
         torch.save(
             {"epochs_run": epoch, "model_state_dict": self.model.module.state_dict()}, path_model
         )
 
-    def _load_checkpoint(self, path_ckp):
+    def _load_checkpoint(self, path_ckp: str) -> None:
+        """Restore the epoch, loss history, model and optimizer states."""
         loc = f"cuda:{self.local_rank}"
         ckp = torch.load(path_ckp, map_location=loc, weights_only=True)
 
@@ -178,7 +222,8 @@ class Trainer:
         if self.global_rank == 0:
             print(f"[{time.ctime()}] Resuming training from checkpoint at Epoch {self.epochs_run}")
 
-    def train(self):
+    def train(self) -> None:
+        """Run the remaining epochs, averaging the losses over all processes."""
         loss_valid_min = 100
         for epoch in range(self.epochs_run, self.epochs_total):
             t0 = time.time()
@@ -231,7 +276,23 @@ class Trainer:
             print(f"[{time.ctime()}] Training for total {self.epochs_total} epochs finished")
 
 
-def prepare_train(batch_size):
+def prepare_train(batch_size: int) -> tuple[DataLoader, DataLoader, nn.Module, Optimizer]:
+    """Create the data loaders, the network (with synchronized BatchNorm) and AdamW.
+
+    Parameters
+    ----------
+    batch_size : int
+        Batch size per process.
+
+    Returns
+    -------
+    dl_train, dl_valid : torch.utils.data.DataLoader
+        Training and validation loaders.
+    model : torch.nn.Module
+        DPR network.
+    optimizer : torch.optim.Optimizer
+        AdamW optimizer.
+    """
     dset_train = CustomDataset(h5path="./datasets/dataset_train_n96k.h5")
     dset_valid = CustomDataset(h5path="./datasets/dataset_valid_n12k.h5")
     dl_train = DataLoader(
@@ -264,7 +325,22 @@ def prepare_train(batch_size):
     return dl_train, dl_valid, model, optimizer
 
 
-def main(epochs_total, batch_size, step_ckp, path_ckp="./checkpoint.pt"):
+def main(
+    epochs_total: int, batch_size: int, step_ckp: int, path_ckp: str = "./checkpoint.pt"
+) -> None:
+    """Set up DDP, train and clean up.
+
+    Parameters
+    ----------
+    epochs_total : int
+        Total number of epochs.
+    batch_size : int
+        Batch size per process.
+    step_ckp : int
+        Interval in epochs between checkpoints.
+    path_ckp : str, default './checkpoint.pt'
+        Checkpoint path.
+    """
     ddp_setup()
     dl_train, dl_valid, model, optimizer = prepare_train(batch_size)
     trainer = Trainer(model, dl_train, dl_valid, optimizer, epochs_total, step_ckp, path_ckp)

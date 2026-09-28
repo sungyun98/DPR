@@ -1,16 +1,46 @@
 # Adaptive Sharpness-Aware Minimization (ASAM) from https://github.com/SamsungLabs/ASAM
 #   (asam.py, archived at Software Heritage swh:1:rev:f156a680171db16d551c0d85cba2514fa3bff6a2)
 #   Copyright 2021 Samsung Research, Apache License 2.0 (LICENSES/ASAM-Apache-2.0.txt)
-#   Reformatted with ruff (including the import order); otherwise unmodified apart from this
-#   header.
+#   Reformatted with ruff (including the import order); docstrings and type hints added;
+#   otherwise unmodified.
+
+"""Sharpness-aware minimizers: SAM and adaptive SAM (ASAM)."""
 
 from collections import defaultdict
 
 import torch
+from torch import nn
+from torch.optim import Optimizer
 
 
 class ASAM:
-    def __init__(self, optimizer, model, rho=0.5, eta=0.01):
+    """Adaptive sharpness-aware minimization (ASAM).
+
+    Each training step is a two-step update: `ascent_step` moves the weights to the
+    (scale-adaptive) worst case within a neighbourhood of radius ``rho``, and
+    `descent_step` restores them and applies the optimizer with the gradient computed there.
+    Call ``loss.backward()`` before each of the two steps.
+
+    Parameters
+    ----------
+    optimizer : torch.optim.Optimizer
+        Base optimizer of the model parameters.
+    model : torch.nn.Module
+        Model being trained.
+    rho : float, default 0.5
+        Radius of the neighbourhood.
+    eta : float, default 0.01
+        Offset added to the weight magnitudes of the adaptive scaling.
+
+    References
+    ----------
+    .. [1] J. Kwon et al., ASAM: adaptive sharpness-aware minimization for scale-invariant
+       learning of deep neural networks, ICML 2021, https://arxiv.org/abs/2102.11600
+    """
+
+    def __init__(
+        self, optimizer: Optimizer, model: nn.Module, rho: float = 0.5, eta: float = 0.01
+    ) -> None:
         self.optimizer = optimizer
         self.model = model
         self.rho = rho
@@ -18,7 +48,8 @@ class ASAM:
         self.state = defaultdict(dict)
 
     @torch.no_grad()
-    def ascent_step(self):
+    def ascent_step(self) -> None:
+        """Perturb the weights towards the worst case and reset the gradients."""
         wgrads = []
         for n, p in self.model.named_parameters():
             if p.grad is None:
@@ -46,7 +77,8 @@ class ASAM:
         self.optimizer.zero_grad()
 
     @torch.no_grad()
-    def descent_step(self):
+    def descent_step(self) -> None:
+        """Restore the weights, apply the optimizer step and reset the gradients."""
         for n, p in self.model.named_parameters():
             if p.grad is None:
                 continue
@@ -56,8 +88,22 @@ class ASAM:
 
 
 class SAM(ASAM):
+    """Sharpness-aware minimization (SAM): `ASAM` without the adaptive scaling.
+
+    Parameters
+    ----------
+    optimizer, model, rho
+        As for `ASAM`; ``eta`` is not used.
+
+    References
+    ----------
+    .. [1] P. Foret et al., Sharpness-aware minimization for efficiently improving
+       generalization, ICLR 2021, https://arxiv.org/abs/2010.01412
+    """
+
     @torch.no_grad()
-    def ascent_step(self):
+    def ascent_step(self) -> None:
+        """Perturb the weights towards the worst case and reset the gradients."""
         grads = []
         for n, p in self.model.named_parameters():
             if p.grad is None:

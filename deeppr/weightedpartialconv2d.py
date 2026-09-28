@@ -2,17 +2,49 @@
 #   (models/partialconv2d.py at a99cd7cb9f6469c02181d9aa34fe5abd95fb0154)
 #   Copyright (c) 2018, NVIDIA CORPORATION, BSD 3-Clause License
 #   (LICENSES/partialconv-BSD-3-Clause.txt)
-#   Modified by Sung Yun Lee: mask weighting by the Guinier-Porod model; reformatted with ruff
+#   Modified by Sung Yun Lee: mask weighting by the Guinier-Porod model; docstrings and type
+#   hints; reformatted with ruff
 # Guinier-Porod model from https://doi.org/10.1107/S0021889810015773
+
+"""Weighted partial convolution for diffraction patterns with missing pixels."""
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
 
 
 class WeightedPartialConv2d(nn.Conv2d):
-    def __init__(self, *args, **kwargs):
+    """Partial convolution whose mask renormalization is weighted by a diffraction model.
+
+    As in a partial convolution, only valid pixels contribute and the output is rescaled by
+    the ratio of the total to the valid weight under the kernel. Here each pixel is weighted
+    by the Guinier-Porod intensity profile of a sphere (see `get_weight_model`), so that
+    missing pixels near the centre of the pattern, where the intensity is high, count more
+    than missing pixels at high scattering angles. The weights are computed on the first
+    call for the input size and kept.
+
+    Parameters
+    ----------
+    *args, **kwargs
+        Arguments of `torch.nn.Conv2d`, and the keywords below.
+    multi_channel : bool, default False
+        Use a mask per input channel (shape ``(N, C, H, W)``) instead of ``(N or 1, 1, H, W)``.
+    return_mask : bool, default False
+        Also return the updated mask from `forward`.
+    object_size : float, default 64
+        Object size in pixels of the real-space grid; the width of the model is
+        ``min(H, W) / object_size``.
+    weight_model : bool, default True
+        Weight by the Guinier-Porod model; if False, this is the ordinary partial convolution.
+
+    References
+    ----------
+    .. [1] Guinier-Porod model, https://doi.org/10.1107/S0021889810015773
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
 
         # whether the mask is multi-channel or not
         if "multi_channel" in kwargs:
@@ -56,7 +88,26 @@ class WeightedPartialConv2d(nn.Conv2d):
         self.mask_ratio = None
 
     @staticmethod
-    def get_weight_model(i_max, j_max, sigma):
+    def get_weight_model(i_max: int, j_max: int, sigma: float) -> Tensor:
+        """Return the Guinier-Porod intensity profile of an ideal sphere.
+
+        The profile is Guinier, ``exp(-(pi * q / sigma)**2 / 5)``, up to
+        ``q1 = sqrt(10) / pi * sigma`` and Porod, ``(q1 / q)**4 / e**2``, beyond, where ``q``
+        is the distance in pixels from index ``(i_max // 2, j_max // 2)``. Values are
+        clamped to at least 1e-8.
+
+        Parameters
+        ----------
+        i_max, j_max : int
+            Size of the profile.
+        sigma : float
+            Width of the profile in pixels (the speckle size).
+
+        Returns
+        -------
+        torch.Tensor
+            Real tensor of shape ``(1, 1, i_max, j_max)``.
+        """
         i = torch.linspace(0, i_max - 1, steps=i_max) - i_max // 2
         j = torch.linspace(0, j_max - 1, steps=j_max) - j_max // 2
         m = torch.meshgrid(i, j, indexing="ij")
@@ -74,7 +125,27 @@ class WeightedPartialConv2d(nn.Conv2d):
         kernel = kernel[(None,) * 2]
         return kernel
 
-    def forward(self, input, mask_in=None):
+    def forward(
+        self, input: Tensor, mask_in: Tensor | None = None
+    ) -> Tensor | tuple[Tensor, Tensor]:
+        """Apply the weighted partial convolution.
+
+        Parameters
+        ----------
+        input : torch.Tensor
+            Real tensor of shape ``(N, C, H, W)``, fftshifted.
+        mask_in : torch.Tensor, optional
+            Mask of valid pixels (1 or True valid, 0 or False missing) of the shape described
+            in the class docstring. By default, all pixels are valid.
+
+        Returns
+        -------
+        output : torch.Tensor
+            Real tensor of shape ``(N, C_out, H_out, W_out)``; zero where no valid pixel is
+            under the kernel.
+        update_mask : torch.Tensor
+            Bool mask of the output, returned only if ``return_mask`` is True.
+        """
         assert len(input.shape) == 4
 
         size = tuple(input.shape)
@@ -157,21 +228,41 @@ class WeightedPartialConv2d(nn.Conv2d):
 
 
 class WeightedPartialConv2d_BN_ACT(nn.Module):
+    """`WeightedPartialConv2d` followed by normalization and activation.
+
+    Parameters
+    ----------
+    in_channels, out_channels, kernel_size : int
+        Parameters of the convolution.
+    stride, padding, dilation, groups : int
+        Parameters of the convolution (defaults 1, 0, 1, 1).
+    bias : bool, default False
+        Bias of the convolution.
+    return_mask : bool, default True
+        Also return the updated mask, for the next layer.
+    norm_layer : type of torch.nn.Module, default torch.nn.BatchNorm2d
+        Normalization class, constructed with ``out_channels``.
+    activation_layer : torch.nn.Module, optional
+        Activation module. By default, the identity.
+    **kwargs
+        Further keywords of `WeightedPartialConv2d` and `torch.nn.Conv2d`.
+    """
+
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
-        groups=1,
-        bias=False,
-        return_mask=True,
-        norm_layer=nn.BatchNorm2d,
-        activation_layer=None,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int = 1,
+        padding: int = 0,
+        dilation: int = 1,
+        groups: int = 1,
+        bias: bool = False,
+        return_mask: bool = True,
+        norm_layer: type[nn.Module] = nn.BatchNorm2d,
+        activation_layer: nn.Module | None = None,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__()
 
         self.pconv = WeightedPartialConv2d(
@@ -191,7 +282,21 @@ class WeightedPartialConv2d_BN_ACT(nn.Module):
         self.bn = norm_layer(out_channels)
         self.act = nn.Identity() if activation_layer is None else activation_layer
 
-    def forward(self, x):
+    def forward(self, x: tuple[Tensor, Tensor]) -> Tensor | tuple[Tensor, Tensor]:
+        """Apply the layer.
+
+        Parameters
+        ----------
+        x : tuple of torch.Tensor
+            Image and mask ``(input, mask)`` for `WeightedPartialConv2d.forward`.
+
+        Returns
+        -------
+        output : torch.Tensor
+            Output feature maps.
+        mask : torch.Tensor
+            Updated mask, returned only if ``return_mask`` is True.
+        """
         assert type(x) is tuple, "Input should be a tuple of two tensors: image and mask."
         input, mask_in = x
 

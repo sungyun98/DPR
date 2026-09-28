@@ -1,4 +1,10 @@
-# initializer
+"""Deep phase retrieval (DPR) network for single-pulse coherent diffraction imaging.
+
+`Network` reconstructs an object from one diffraction pattern; `dataset`, `loss`, `asam` and
+`scheduler` provide the training components. The iterative phase retrieval used to refine
+DPR results is in the separate ``phaseretrieval`` package.
+"""
+
 from .asam import ASAM, SAM
 from .dataset import Binarize, CustomDataset, Dilate, GenerateDiffraction, IrregularMaskDataset
 from .loss import CombinedLoss
