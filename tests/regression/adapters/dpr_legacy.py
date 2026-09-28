@@ -16,6 +16,10 @@ import sys
 import numpy as np
 import torch
 
+# float64 diagnostic mode for the phase retrieval cases (REG_FLOAT64=1)
+F64 = os.environ.get("REG_FLOAT64") == "1"
+FDT, CDT = (np.float64, np.complex128) if F64 else (np.float32, np.complex64)
+
 NAME = "dpr_legacy"
 NOTES = ["torch.set_num_threads(1) for bit-reproducible CPU results",
          "checkpoints loaded with map_location='cpu' (as demo.ipynb does with its device)"]
@@ -30,6 +34,8 @@ class Adapter:
         self.root = os.path.abspath(code_root)
         sys.path.insert(0, self.root)
         torch.set_num_threads(1)
+        if F64:
+            torch.set_default_dtype(torch.float64)
         import module as dpr  # noqa: F401  (the original package name)
         from module import weightedpartialconv2d
 
@@ -49,9 +55,9 @@ class Adapter:
     def phase_retrieval(self, amplitude, support, unknown, info, iteration, initial_phase, toggle=False):
         if toggle:
             raise NotImplementedError("toggle is not supported by the DPR implementation")
-        t = lambda x: torch.from_numpy(np.asarray(x, dtype=np.float32))[None, None]
+        t = lambda x: torch.from_numpy(np.asarray(x, dtype=FDT))[None, None]
         it = self.dpr.PhaseRetrieval(t(amplitude), t(support), t(unknown), **dict(info))
-        phase = torch.from_numpy(np.asarray(initial_phase, dtype=np.complex64))[:, None]
+        phase = torch.from_numpy(np.asarray(initial_phase, dtype=CDT))[:, None]
         with torch.no_grad():
             out, path = it(iteration, phase, **dict(info))
         return out[:, 0].numpy(), path.numpy()

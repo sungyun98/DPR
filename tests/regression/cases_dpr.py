@@ -222,6 +222,18 @@ for _name in CASES:
     if _name.startswith("pr_") or _name == "demo_pipeline":
         TOLERANCE[_name] = {"*": 1e-4}
 TOLERANCE["network_experimental"] = TOLERANCE["network_synthetic"] = {"*": 1e-5}
+# demo.ipynb works in float32 only, so its float32 noise was measured by perturbing the experimental
+# pattern by one float32 epsilon (relative, 3 seeds, legacy code and environment): dpr changed by
+# <= 2.8e-6, dpr_refined (50 GPS-R iterations) by <= 8.5e-4, refine_error by <= 8.6e-6. Tolerances
+# are three times these values.
+TOLERANCE["demo_pipeline"] = {"*": 1e-4, "dpr": 1e-5, "dpr_refined": 2.5e-3, "refine_error": 3e-5}
+
+# Cases with float64 references (references_f64/, see generate_f64_references.py). The demo
+# pipeline and networks are excluded: demo.ipynb creates float32 tensors explicitly.
+F64_CASES = ["pr_HIO", "pr_RAAR_step", "pr_RAAR_schedule", "pr_GPS-R", "pr_GPS-F"]
+F64_DROP = []
+F64_TOLERANCE = 1e-9
+F32_NOISE_FACTOR = 3  # float32 tolerance >= this factor x the legacy code's own float32 error
 
 RNG_DEPENDENT = {
     "dataset_generate_diffraction": "GenerateDiffraction draws coherence, flux and Poisson/Gaussian noise from the "

@@ -1,0 +1,30 @@
+{
+ "meta": {
+  "case": "pr_RAAR_schedule",
+  "adapter": "dpr_legacy",
+  "code": "v1.0-legacy-dirty (9eefa5a5d8481f825479a4f664d5792d670aac14)",
+  "precision": "float64",
+  "environment": {
+   "python": "3.11.5",
+   "platform": "Linux-5.14.0-570.17.1.el9_6.x86_64-x86_64-with-glibc2.34",
+   "numpy": "1.26.0",
+   "scipy": "1.11.3",
+   "skimage": "0.20.0",
+   "torch": "2.1.0+cpu",
+   "torchvision": "0.16.0+cpu",
+   "PIL": "10.0.1",
+   "h5py": "3.9.0"
+  },
+  "f32_reference_rel_error": {
+   "u_crop": 1.079433298682477e-06,
+   "path": 4.338753748141762e-06
+  }
+ },
+ "values": {
+  "u_outside_abs_sum": 0.0
+ },
+ "arrays": [
+  "path",
+  "u_crop"
+ ]
+}
