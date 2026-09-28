@@ -1,4 +1,9 @@
 # Deep Phase Retrieval (DPR)
+
+> **Package renamed:** the package folder `module` is now `deeppr`. Please replace
+> `from module import ...` with `from deeppr import ...`. We apologize for the inconvenience to
+> existing users. The original code remains available at the tag `v1.0-legacy`.
+
 DPR is a deep neural network for direct phase retrievals of single-particle diffraction patterns from single-pulse coherent diffraction imaging experiments using X-ray free electron lasers.
 
 ## Requirements
@@ -30,7 +35,7 @@ DPR is a deep neural network for direct phase retrievals of single-particle diff
 
 2. Coefficients for the loss function might require to be adjusted for training datasets with different conditions.
 
-3. We used NVIDIA Irregular Mask Dataset from https://research.nvidia.com/labs/adlr/publication/partialconv-inpainting. Please check the file paths in 'module.dataset.IrregularMaskDataset' when using 'generate_dataset.ipynb'. Other datasets, EMNIST and CIFAR-100, are from torchvision library.
+3. We used NVIDIA Irregular Mask Dataset from https://research.nvidia.com/labs/adlr/publication/partialconv-inpainting. Please check the file paths in 'deeppr.dataset.IrregularMaskDataset' when using 'generate_dataset.ipynb'. Other datasets, EMNIST and CIFAR-100, are from torchvision library.
 
 4. We imported following codes.
 
