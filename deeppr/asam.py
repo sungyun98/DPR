@@ -1,10 +1,11 @@
 # Adaptive Sharpness-Aware Minimization (ASAM) from https://github.com/SamsungLabs/ASAM
 #   (asam.py, archived at Software Heritage swh:1:rev:f156a680171db16d551c0d85cba2514fa3bff6a2)
 #   Copyright 2021 Samsung Research, Apache License 2.0 (LICENSES/ASAM-Apache-2.0.txt)
-#   Unmodified apart from this header.
+#   Reformatted with ruff; otherwise unmodified apart from this header.
 
 import torch
 from collections import defaultdict
+
 
 class ASAM:
     def __init__(self, optimizer, model, rho=0.5, eta=0.01):
@@ -24,17 +25,17 @@ class ASAM:
             if t_w is None:
                 t_w = torch.clone(p).detach()
                 self.state[p]["eps"] = t_w
-            if 'weight' in n:
+            if "weight" in n:
                 t_w[...] = p[...]
                 t_w.abs_().add_(self.eta)
                 p.grad.mul_(t_w)
             wgrads.append(torch.norm(p.grad, p=2))
-        wgrad_norm = torch.norm(torch.stack(wgrads), p=2) + 1.e-16
+        wgrad_norm = torch.norm(torch.stack(wgrads), p=2) + 1.0e-16
         for n, p in self.model.named_parameters():
             if p.grad is None:
                 continue
             t_w = self.state[p].get("eps")
-            if 'weight' in n:
+            if "weight" in n:
                 p.grad.mul_(t_w)
             eps = t_w
             eps[...] = p.grad[...]
@@ -60,7 +61,7 @@ class SAM(ASAM):
             if p.grad is None:
                 continue
             grads.append(torch.norm(p.grad, p=2))
-        grad_norm = torch.norm(torch.stack(grads), p=2) + 1.e-16
+        grad_norm = torch.norm(torch.stack(grads), p=2) + 1.0e-16
         for n, p in self.model.named_parameters():
             if p.grad is None:
                 continue

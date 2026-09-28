@@ -42,3 +42,17 @@ Paper = "https://doi.org/10.1038/s41524-025-01569-7"
 
 [tool.setuptools]
 packages = ["deeppr"]
+
+[tool.ruff]
+line-length = 100
+extend-include = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"*.ipynb" = ["D", "E402"]
+"tests/**" = ["D"]
