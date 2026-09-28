@@ -98,9 +98,12 @@ class Adapter:
             self._demo = ns
         return self._demo
 
+    def prepare_data(self, pattern):
+        return self.demo()["prepare_data"](np.array(pattern), bin=None)
+
     def demo_pipeline(self, pattern, ckpt, param, n_iter):
         ns = self.demo()
-        inp, mask = ns["prepare_data"](np.array(pattern), bin=None)
+        inp, mask = self.prepare_data(pattern)
         with torch.no_grad():
             x = inp * mask
             dpr = ns["align_obj_cen"](self.model(ckpt)(x, mask))

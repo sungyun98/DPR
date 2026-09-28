@@ -136,7 +136,7 @@ def make_pr_case(name):
 
 # ---- pretrained network --------------------------------------------------------------------------
 def case_network_experimental(api):
-    inp, mask = api.demo()["prepare_data"](np.array(loadmat(EXP_PATTERN)["pattern"]), bin=None)
+    inp, mask = api.prepare_data(np.array(loadmat(EXP_PATTERN)["pattern"]))
     inp, mask = inp.numpy(), mask.numpy()
     out = {"input_sum": float(inp.sum()), "mask_sum": int(mask.sum())}
     for ckpt in CKPTS:
