@@ -1,8 +1,11 @@
 # Deep Phase Retrieval (DPR)
 
 > **Package renamed:** the package folder `module` is now `deeppr`. Please replace
-> `from module import ...` with `from deeppr import ...`. We apologize for the inconvenience to
-> existing users. The original code remains available at the tag `v1.0-legacy`.
+> `from module import ...` with `from deeppr import ...`. The phase retrieval algorithms are no
+> longer bundled with DPR; they come from the
+> [PhaseRetrieval](https://github.com/sungyun98/PhaseRetrieval) package
+> (`from phaseretrieval import PhaseRetrieval`). We apologize for the inconvenience to existing
+> users. The original code remains available at the tag `v1.0-legacy`.
 
 DPR is a deep neural network for direct phase retrievals of single-particle diffraction patterns from single-pulse coherent diffraction imaging experiments using X-ray free electron lasers.
 
