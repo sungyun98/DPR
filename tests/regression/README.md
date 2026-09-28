@@ -38,6 +38,10 @@ generator (`RNG_DEPENDENT` in `cases_dpr.py`).
 ## Running
 
 ```bash
+# current code: deeppr with the phaseretrieval package (REG_PR_ROOT, default ../PhaseRetrieval)
+REG_IMPL=dpr_modern REG_CODE_ROOT=. conda run -n <env> python -m pytest tests/regression -q
+
+# the original code (reproduces the references bit for bit)
 git worktree add --detach ../_legacy/DPR v1.0-legacy
 REG_IMPL=dpr_legacy REG_CODE_ROOT=../_legacy/DPR \
     conda run -n dpr-legacy python -m pytest tests/regression -q
@@ -53,4 +57,5 @@ iterative algorithms and the demo pipeline). NaN positions and error types must 
   of a four-dimensional tensor).
 
 Intended changes of results are listed with their reason in `EXPECTED_CHANGES`
-(`cases_dpr.py`); such cases are reported as expected failures.
+(`cases_dpr.py`); for implementations other than the one that produced the references, such
+cases are reported as expected failures.
