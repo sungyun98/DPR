@@ -9,7 +9,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from phaseretrieval import align_object
+from phaseretrieval import AlignObject
 from torch import Tensor
 from torchvision import models, transforms
 from torchvision.transforms import InterpolationMode
@@ -206,7 +206,7 @@ class CombinedLoss(nn.Module):
 
     The weighted sum of the L1 loss, the gradient loss (`grad_loss`), the VGG19 perceptual
     loss of the last four blocks (`VGGLoss`) and the Fourier amplitude loss (`fourier_loss`),
-    computed after aligning the output to the target (`phaseretrieval.align_object`).
+    computed after aligning the output to the target (`phaseretrieval.AlignObject`).
 
     Parameters
     ----------
@@ -291,7 +291,7 @@ class CombinedLoss(nn.Module):
             Target objects of shape ``(N, 1, 64, 64)``.
         align : bool, default True
             Align the output to the target first (translation up to 32 pixels and twin
-            image, see `phaseretrieval.align_object`).
+            image, see `phaseretrieval.AlignObject`).
 
         Returns
         -------
@@ -299,7 +299,7 @@ class CombinedLoss(nn.Module):
             Scalar loss.
         """
         if align:
-            output = align_object(output, target)
+            output = AlignObject(output, target)
 
         l1_loss = F.l1_loss(output, target)
         grad_loss = self.grad_loss(output, target)

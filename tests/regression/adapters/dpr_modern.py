@@ -1,7 +1,7 @@
 """Adapter for the ``deeppr`` package using the shared ``phaseretrieval`` package.
 
 Identical canonical interface to ``dpr_legacy.py``. The phase retrieval algorithms, including
-``find_center`` and ``align_object``, come from the PhaseRetrieval repository, located by
+``SymmOffset`` and ``AlignObject``, come from the PhaseRetrieval repository, located by
 ``REG_PR_ROOT`` (default: ``../PhaseRetrieval`` next to the DPR checkout). The helper functions
 of ``demo.ipynb`` (prepare_data, refine_by_pr) are executed from the notebook's own code cells:
 the cells that contain only imports and function definitions.
@@ -35,7 +35,7 @@ class Adapter(_LegacyAdapter):
         torch.set_num_threads(1)
         if F64:
             torch.set_default_dtype(torch.float64)
-        from phaseretrieval import PhaseRetrieval, align_object, find_center
+        from phaseretrieval import AlignObject, PhaseRetrieval, SymmOffset
 
         import deeppr
         from deeppr import weightedpartialconv2d
@@ -43,8 +43,8 @@ class Adapter(_LegacyAdapter):
         self.dpr = deeppr
         self.WeightedPartialConv2d = weightedpartialconv2d.WeightedPartialConv2d
         self.PhaseRetrieval = PhaseRetrieval
-        self.align_object = align_object
-        self.find_center = find_center
+        self.AlignObject = AlignObject
+        self.SymmOffset = SymmOffset
         self.notes = list(self.notes) + [f"phaseretrieval imported from {pr_root}"]
         self._models = {}
         self._demo = None
@@ -61,10 +61,10 @@ class Adapter(_LegacyAdapter):
             out, path = it(iteration, phase, toggle=toggle, **dict(info))
         return out[:, 0].numpy(), path.numpy()
 
-    # ---- loss.py: CombinedLoss aligns with phaseretrieval.align_object ---------------------
+    # ---- loss.py: CombinedLoss aligns with phaseretrieval.AlignObject ---------------------
     def loss_align_obj(self, output, target, limit=32):
-        assert limit == max(output.shape[-2:]) // 2, "align_object uses limit = max(H, W) // 2"
-        return self.align_object(torch.from_numpy(output), torch.from_numpy(target)).numpy()
+        assert limit == max(output.shape[-2:]) // 2, "AlignObject uses limit = max(H, W) // 2"
+        return self.AlignObject(torch.from_numpy(output), torch.from_numpy(target)).numpy()
 
     # ---- demo.ipynb pipeline ------------------------------------------------------------------
     def demo(self):
@@ -90,16 +90,16 @@ class Adapter(_LegacyAdapter):
         inp, mask = self.prepare_data(pattern)
         with torch.no_grad():
             x = inp * mask
-            dpr = self.align_object(self.model(ckpt)(x, mask))
+            dpr = self.AlignObject(self.model(ckpt)(x, mask))
             refined, error = ns["refine_by_pr"](
                 x, mask, dpr, n_iter, dict(param), torch.device("cpu"), return_error=True
             )
-            refined = self.align_object(refined, dpr)
+            refined = self.AlignObject(refined, dpr)
         return {
             "input": inp.numpy(),
             "mask": mask.numpy(),
             "dpr": dpr.numpy(),
             "dpr_refined": refined.numpy(),
             "refine_error": error.numpy(),
-            "center_shift": np.asarray(self.find_center(np.array(pattern))),
+            "center_shift": np.asarray(self.SymmOffset(np.array(pattern))),
         }
