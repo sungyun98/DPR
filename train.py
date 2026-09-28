@@ -190,6 +190,7 @@ class Trainer:
             if self.loss_hist is None:
                 self.loss_hist = torch.zeros(2, self.epochs_total, device=self.local_rank)
             if self.loss_hist.shape[-1] < self.epochs_total:
+                epochs_prev = self.loss_hist.shape[-1]
                 self.loss_hist = torch.cat(
                     (
                         self.loss_hist,
@@ -201,7 +202,7 @@ class Trainer:
                 )
                 if self.global_rank == 0:
                     print(
-                        f"[{time.ctime()}] Total epochs changed from {self.loss_hist.shape[-1]} "
+                        f"[{time.ctime()}] Total epochs changed from {epochs_prev} "
                         f"to {self.epochs_total}"
                     )
 
