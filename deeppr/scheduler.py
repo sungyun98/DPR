@@ -1,7 +1,7 @@
 import math
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import LRScheduler
 
-class CosineAnnealingWarmUpRestarts(_LRScheduler):
+class CosineAnnealingWarmUpRestarts(LRScheduler):
     def __init__(self, optimizer, T_0, T_mult=1, T_up=0, eta_min=0, eta_max_0=0.1, gamma=1, last_epoch=-1):
         if T_0 <= 0 or not isinstance(T_0, int):
             raise ValueError("Expected positive integer T_0, but got {}".format(T_0))
