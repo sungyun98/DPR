@@ -40,7 +40,7 @@ class WeightedPartialConv2d(nn.Conv2d):
         else:
             self.trg_weight_model = True
 
-        super(WeightedPartialConv2d, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if self.multi_channel:
             self.weight_maskUpdater = torch.ones(
@@ -141,9 +141,7 @@ class WeightedPartialConv2d(nn.Conv2d):
                 self.update_mask = torch.ge(self.update_mask, 1e-8)
                 self.mask_ratio = torch.mul(self.mask_ratio, self.update_mask)
 
-        raw_out = super(WeightedPartialConv2d, self).forward(
-            torch.mul(input, mask) if mask_in is not None else input
-        )
+        raw_out = super().forward(torch.mul(input, mask) if mask_in is not None else input)
 
         if self.bias is not None:
             bias_view = self.bias.view(1, self.out_channels, 1, 1)
@@ -174,7 +172,7 @@ class WeightedPartialConv2d_BN_ACT(nn.Module):
         activation_layer=nn.Identity,
         **kwargs,
     ):
-        super(WeightedPartialConv2d_BN_ACT, self).__init__()
+        super().__init__()
 
         self.pconv = WeightedPartialConv2d(
             in_channels,

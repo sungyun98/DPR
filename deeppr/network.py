@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from .ffc import FFC_BN_ACT, ConcatTupleLayer, FFCResNetBlock, SplitDataLayer
 from .weightedpartialconv2d import WeightedPartialConv2d_BN_ACT
-from .ffc import FFC_BN_ACT, FFCResNetBlock, ConcatTupleLayer, SplitDataLayer
 
 
 def _fft2(input, s=None):
@@ -18,7 +18,7 @@ class Network(nn.Module):
     def __init__(
         self, ngf=64, max_features=1024, weight_model=True, downsample_FFC=False, refinement=True
     ):
-        super(Network, self).__init__()
+        super().__init__()
 
         self.downsample_FFC = downsample_FFC
         self.trg_refine = refinement

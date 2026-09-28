@@ -11,7 +11,8 @@ import sys
 import numpy as np
 import torch
 
-from adapters.dpr_legacy import CDT, F64, FDT, Adapter as _LegacyAdapter
+from adapters.dpr_legacy import CDT, F64, FDT
+from adapters.dpr_legacy import Adapter as _LegacyAdapter
 
 NAME = "dpr_modern"
 
@@ -30,21 +31,24 @@ class Adapter(_LegacyAdapter):
         torch.set_num_threads(1)
         if F64:
             torch.set_default_dtype(torch.float64)
+        from phaseretrieval import PhaseRetrieval
+
         import deeppr
         from deeppr import weightedpartialconv2d
-        from phaseretrieval import PhaseRetrieval
 
         self.dpr = deeppr
         self.WeightedPartialConv2d = weightedpartialconv2d.WeightedPartialConv2d
         self.PhaseRetrieval = PhaseRetrieval
-        self.notes = list(self.notes) + ["phaseretrieval imported from {}".format(pr_root)]
+        self.notes = list(self.notes) + [f"phaseretrieval imported from {pr_root}"]
         self._models = {}
         self._demo = None
 
     def phase_retrieval(
         self, amplitude, support, unknown, info, iteration, initial_phase, toggle=False
     ):
-        t = lambda x: torch.from_numpy(np.asarray(x, dtype=FDT))[None, None]
+        def t(x):
+            return torch.from_numpy(np.asarray(x, dtype=FDT))[None, None]
+
         it = self.PhaseRetrieval(t(amplitude), t(support), t(unknown), **dict(info))
         phase = torch.from_numpy(np.asarray(initial_phase, dtype=CDT))[:, None]
         with torch.no_grad():

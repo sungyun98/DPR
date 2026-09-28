@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from torchvision import models, transforms
 from torchvision.transforms import InterpolationMode
 
-from .network import _fft2, _ifft2
+from .network import _fft2
 
 
 def gram_matrix(input_tensor):
@@ -24,7 +24,7 @@ def gram_matrix(input_tensor):
 
 class VGG19Partial(nn.Module):
     def __init__(self, block_num=5):
-        super(VGG19Partial, self).__init__()
+        super().__init__()
 
         # same operations as torchvision.transforms._presets.ImageClassification(crop_size=224, resize_size=224)
         self.preprocess = transforms.Compose(
@@ -98,7 +98,7 @@ class VGG19Partial(nn.Module):
 
 class VGGLoss(nn.Module):
     def __init__(self, block_range=(3, 5), style=False, device="cpu"):
-        super(VGGLoss, self).__init__()
+        super().__init__()
 
         self.block_range = block_range
         self.style = style

@@ -60,7 +60,10 @@ class Adapter:
     ):
         if toggle:
             raise NotImplementedError("toggle is not supported by the DPR implementation")
-        t = lambda x: torch.from_numpy(np.asarray(x, dtype=FDT))[None, None]
+
+        def t(x):
+            return torch.from_numpy(np.asarray(x, dtype=FDT))[None, None]
+
         it = self.dpr.PhaseRetrieval(t(amplitude), t(support), t(unknown), **dict(info))
         phase = torch.from_numpy(np.asarray(initial_phase, dtype=CDT))[:, None]
         with torch.no_grad():
@@ -180,7 +183,10 @@ class Adapter:
             if kind == "ASAM"
             else self.dpr.SAM(opt, model, rho=rho)
         )
-        loss_fn = lambda: torch.mean((model(torch.from_numpy(x)) - torch.from_numpy(y)) ** 2)
+
+        def loss_fn():
+            return torch.mean((model(torch.from_numpy(x)) - torch.from_numpy(y)) ** 2)
+
         loss_fn().backward()
         mini.ascent_step()
         loss_fn().backward()

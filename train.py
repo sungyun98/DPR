@@ -1,23 +1,45 @@
+"""Train the DPR network with DistributedDataParallel on one or more nodes.
+
+Launch with torchrun, one process per GPU::
+
+    torchrun
+        --nnodes=$NUM_NODES
+        --nproc_per_node=$NUM_GPU
+        --node_rank=${0 to $NUM_NODES-1 for each node}
+        --max-restarts=$NUM_ALLOWED_FAILURES
+        --rdzv_id=$JOB_ID
+        --rdzv_endpoint=$HOST_NODE_ADDR:$PORT
+        train.py $EPOCHS_TOTAL
+
+Example command for each node (NODE01, NODE02, and NODE03 in order)::
+
+    [@NODE01]$ nohup torchrun --nnodes=3 --nproc_per_node=4 --node_rank=0 --rdzv_id=123 \
+        --rdzv_endpoint=NODE01:29400 train.py 600 &
+    [@NODE02]$ nohup torchrun --nnodes=3 --nproc_per_node=4 --node_rank=1 --rdzv_id=123 \
+        --rdzv_endpoint=NODE01:29400 train.py 600 > /dev/null &
+    [@NODE03]$ nohup torchrun --nnodes=3 --nproc_per_node=4 --node_rank=2 --rdzv_id=123 \
+        --rdzv_endpoint=NODE01:29400 train.py 600 > /dev/null &
+"""
+
 import os
+import sys
 import time
 
 import torch
-import torch.nn as nn
 import torch.distributed as dist
-
+import torch.nn as nn
+from torch.distributed import destroy_process_group, init_process_group
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.distributed import init_process_group, destroy_process_group
-from torch.optim.lr_scheduler import MultiStepLR
 
-from deeppr import Network, CustomDataset, SAM, ASAM, CosineAnnealingWarmUpRestarts, CombinedLoss
+from deeppr import ASAM, CombinedLoss, CosineAnnealingWarmUpRestarts, CustomDataset, Network
 
 
 def ddp_setup():
     init_process_group(backend="nccl")
     torch.backends.cudnn.benchmark = True  # enable cuDNN library benchmark
-    # torch.autograd.set_detect_anomaly(True) # enable anomaly detection
+    # for debugging, enable anomaly detection with torch.autograd.set_detect_anomaly(True)
     torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
 
 
@@ -37,12 +59,10 @@ class Trainer:
         self.criterion = CombinedLoss(coeffs=(1, 10, 0.1, 0.01), device=self.local_rank)
 
         self.optimizer = optimizer
-        self.grad_clip = 1  # max_norm for gradient clipping
-        # self.grad_clip = 0.1 # max_norm for gradient clipping
+        self.grad_clip = 1  # max_norm for gradient clipping (alternative: 0.1)
 
-        # SAM
-        self.minimizer = None
-        # self.minimizer = SAM(self.optimizer, model, rho=0.1)
+        # sharpness-aware minimizer: ASAM, or SAM(self.optimizer, model, rho=0.1) from deeppr,
+        # or None for plain optimizer steps
         self.minimizer = ASAM(self.optimizer, model, rho=0.2, eta=1e-2)
 
         self.epochs_total = epochs_total
@@ -53,10 +73,8 @@ class Trainer:
         if os.path.exists(self.path_ckp):
             self._load_checkpoint(self.path_ckp)
 
-        # LR Scheduler
-        self.scheduler = None
-        # self.scheduler = MultiStepLR(self.optimizer, milestones=[500], gamma=0.1,
-        #                              last_epoch=self.epochs_run - 1)
+        # LR scheduler: cosine annealing with warm restarts, or MultiStepLR(self.optimizer,
+        # milestones=[500], gamma=0.1, last_epoch=self.epochs_run - 1) from torch.optim, or None
         scheduler_kwargs = {
             "T_0": self.epochs_total // 15,
             "T_mult": 2,
@@ -183,7 +201,8 @@ class Trainer:
                 )
                 if self.global_rank == 0:
                     print(
-                        f"[{time.ctime()}] Total epochs changed from {self.loss_hist.shape[-1]} to {self.epochs_total}"
+                        f"[{time.ctime()}] Total epochs changed from {self.loss_hist.shape[-1]} "
+                        f"to {self.epochs_total}"
                     )
 
             self.loss_hist[:, epoch] = loss
@@ -192,7 +211,9 @@ class Trainer:
 
             if self.global_rank == 0:
                 print(
-                    f"[{time.ctime()}] Epoch {epoch + 1}/{self.epochs_total} | Train loss: {loss[0]:.6f} | Valid loss: {loss[1]:.6f} | Learning rate: {lr:.6f} | Elapsed time: {time.time() - t0:.1f} s"
+                    f"[{time.ctime()}] Epoch {epoch + 1}/{self.epochs_total} | "
+                    f"Train loss: {loss[0]:.6f} | Valid loss: {loss[1]:.6f} | "
+                    f"Learning rate: {lr:.6f} | Elapsed time: {time.time() - t0:.1f} s"
                 )
 
                 if (epoch + 1) % self.step_ckp == 0:
@@ -251,24 +272,6 @@ def main(epochs_total, batch_size, step_ckp, path_ckp="./checkpoint.pt"):
 
 
 if __name__ == "__main__":
-    import sys
-
     epochs_total = int(sys.argv[1])
 
     main(epochs_total, batch_size=16, step_ckp=10)
-
-    """
-    torchrun
-        --nnodes=$NUM_NODES
-        --nproc_per_node=$NUM_GPU
-        --node_rank=${0 to $NUM_GPU-1 for each node}
-        --max-restarts=$NUM_ALLOWED_FAILURES
-        --rdzv_id=$JOB_ID
-        --rdzv_endpoint=$HOST_NODE_ADDR:$PORT
-        train.py $EPOCHS_TOTAL
-    
-    * Example command for each node (NODE01, NODE02, and NODE03 in order)
-    [@NODE01]$ nohup torchrun --nnodes=3 --nproc_per_node=4 --node_rank=0 --rdzv_id=123 --rdzv_endpoint=NODE01:29400 train.py 600 &
-    [@NODE02]$ nohup torchrun --nnodes=3 --nproc_per_node=4 --node_rank=1 --rdzv_id=123 --rdzv_endpoint=NODE01:29400 train.py 600 > /dev/null &
-    [@NODE03]$ nohup torchrun --nnodes=3 --nproc_per_node=4 --node_rank=2 --rdzv_id=123 --rdzv_endpoint=NODE01:29400 train.py 600 > /dev/null &
-    """

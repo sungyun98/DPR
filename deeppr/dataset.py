@@ -1,18 +1,18 @@
 import os
+
 import h5py
 import numpy as np
-from PIL import Image
-from scipy.ndimage import maximum_filter, minimum_filter
-
 import torch
 import torch.nn.functional as F
+from PIL import Image
+from scipy.ndimage import maximum_filter, minimum_filter
 from torch.utils.data import Dataset
 from torchvision import transforms
 
 from .network import _fft2, _ifft2
 
 
-class Binarize(object):
+class Binarize:
     def __init__(self, threshold):
         self.threshold = int(255 * threshold)
 
@@ -22,7 +22,7 @@ class Binarize(object):
         return image
 
 
-class Dilate(object):
+class Dilate:
     def __init__(self, ksize_range, inv=False):
         self.ksize_range = ksize_range
         self.inv = inv

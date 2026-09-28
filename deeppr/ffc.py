@@ -20,7 +20,7 @@ import torch.nn as nn
 class FourierUnit(nn.Module):
     def __init__(self, in_channels, out_channels, groups=1):
         # bn_layer not used
-        super(FourierUnit, self).__init__()
+        super().__init__()
         self.groups = groups
         self.conv_layer = nn.Conv2d(
             in_channels=in_channels * 2,
@@ -37,36 +37,19 @@ class FourierUnit(nn.Module):
     def forward(self, x):
         size = x.shape
 
-        # ffted = torch.rfft2(x, signal_ndim=2, normalized=True) # (batch, c, h, w/2+1, 2)
         ffted = torch.fft.rfft2(x, norm="ortho")
         ffted = torch.view_as_real(ffted)
 
         ffted = ffted.permute(0, 1, 4, 2, 3).contiguous()  # (batch, c, 2, h, w/2+1)
-        ffted = ffted.view(
-            (
-                size[0],
-                -1,
-            )
-            + ffted.shape[3:]
-        )
+        ffted = ffted.view((size[0], -1) + ffted.shape[3:])
 
         ffted = self.conv_layer(ffted)  # (batch, c*2, h, w/2+1)
         ffted = self.relu(self.bn(ffted))
 
         ffted = (
-            ffted.view(
-                (
-                    size[0],
-                    -1,
-                    2,
-                )
-                + ffted.shape[2:]
-            )
-            .permute(0, 1, 3, 4, 2)
-            .contiguous()
+            ffted.view((size[0], -1, 2) + ffted.shape[2:]).permute(0, 1, 3, 4, 2).contiguous()
         )  # (batch, c, t, h, w/2+1, 2)
 
-        # output = torch.irfft2(ffted, signal_ndim=2,signal_sizes=size[2:], normalized=True)
         ffted = torch.view_as_complex(ffted)
         output = torch.fft.irfft2(ffted, s=size[2:], norm="ortho")
 
@@ -76,7 +59,7 @@ class FourierUnit(nn.Module):
 class SpectralTransform(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1, groups=1, enable_lfu=True):
         # bn_layer not used
-        super(SpectralTransform, self).__init__()
+        super().__init__()
         self.enable_lfu = enable_lfu
         if stride == 2:
             self.downsample = nn.AvgPool2d(kernel_size=(2, 2), stride=2)
@@ -134,7 +117,7 @@ class FFC(nn.Module):
         enable_lfu=True,
         **kwargs,
     ):
-        super(FFC, self).__init__()
+        super().__init__()
 
         assert stride == 1 or stride == 2, "Stride should be 1 or 2."
         self.stride = stride
@@ -192,7 +175,7 @@ class FFC_BN_ACT(nn.Module):
         enable_lfu=True,
         **kwargs,
     ):
-        super(FFC_BN_ACT, self).__init__()
+        super().__init__()
         self.ffc = FFC(
             in_channels,
             out_channels,
@@ -226,7 +209,7 @@ class FFC_BN_ACT(nn.Module):
 
 class FFCResNetBlock(nn.Module):
     def __init__(self, channels, norm_layer=nn.BatchNorm2d, activation_layer=nn.Identity, **kwargs):
-        super(FFCResNetBlock, self).__init__()
+        super().__init__()
 
         self.conv1 = FFC_BN_ACT(
             channels,

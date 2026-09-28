@@ -10,10 +10,9 @@ import os
 import tempfile
 
 import numpy as np
+from harness import capture_error
 from scipy.io import loadmat
 from scipy.ndimage import binary_dilation, gaussian_filter
-
-from harness import capture_error
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 EXP_PATTERN = os.path.join(REPO, "exp", "20170321_3480_35_ag_flower.mat")
@@ -151,7 +150,7 @@ def case_network_synthetic(api):
     for seed in [21, 22]:
         inp, mask, _ = synthetic_pattern(seed)
         for ckpt in CKPTS:
-            out["out_{}_seed{}".format(ckpt[:-3], seed)] = api.network(ckpt, inp, mask)
+            out[f"out_{ckpt[:-3]}_seed{seed}"] = api.network(ckpt, inp, mask)
     return out
 
 
@@ -249,7 +248,7 @@ def case_minimizers(api):
     out = {}
     for kind, rho in [("ASAM", 0.2), ("SAM", 0.1)]:
         for k, v in api.minimizer_step(kind, w1, b1, w2, x, y, rho).items():
-            out["{}_{}".format(kind, k)] = v
+            out[f"{kind}_{k}"] = v
     return out
 
 

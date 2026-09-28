@@ -1,4 +1,5 @@
 import math
+
 from torch.optim.lr_scheduler import LRScheduler
 
 
@@ -7,11 +8,11 @@ class CosineAnnealingWarmUpRestarts(LRScheduler):
         self, optimizer, T_0, T_mult=1, T_up=0, eta_min=0, eta_max_0=0.1, gamma=1, last_epoch=-1
     ):
         if T_0 <= 0 or not isinstance(T_0, int):
-            raise ValueError("Expected positive integer T_0, but got {}".format(T_0))
+            raise ValueError(f"Expected positive integer T_0, but got {T_0}")
         if T_mult < 1 or not isinstance(T_mult, int):
-            raise ValueError("Expected integer T_mult >= 1, but got {}".format(T_mult))
+            raise ValueError(f"Expected integer T_mult >= 1, but got {T_mult}")
         if T_up < 0 or not isinstance(T_up, int):
-            raise ValueError("Expected positive integer T_up, but got {}".format(T_up))
+            raise ValueError(f"Expected positive integer T_up, but got {T_up}")
 
         self.T_0 = T_0
         self.T_i = T_0
@@ -26,7 +27,7 @@ class CosineAnnealingWarmUpRestarts(LRScheduler):
         self.T_cur = last_epoch
         self.cycle = 0
 
-        super(CosineAnnealingWarmUpRestarts, self).__init__(optimizer, last_epoch)
+        super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
         if self.T_cur == -1:
