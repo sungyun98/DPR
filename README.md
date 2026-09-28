@@ -37,7 +37,7 @@ pip install git+https://github.com/sungyun98/DPR.git
 Tested with Python 3.12, PyTorch 2.14.0 and torchvision 0.29.0 (CUDA 12.6 builds), NumPy 2.5.3,
 SciPy 1.18.1, scikit-image 0.26.0, Pillow 12.3.0 and h5py 3.16.0; the exact versions are in
 `requirements.txt`. Minimum versions: Python 3.10, PyTorch 2.1, torchvision 0.16, NumPy 1.26,
-SciPy 1.11, scikit-image 0.22. The PyTorch builds in `requirements.txt` use CUDA 12.6 and run with
+SciPy 1.11, scikit-image 0.20. The PyTorch builds in `requirements.txt` use CUDA 12.6 and run with
 NVIDIA drivers 525 or newer; replace `cu126` with `cpu` for a CPU-only installation.
 
 ## Usage
