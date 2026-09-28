@@ -11,6 +11,7 @@
 #   are passed as instances instead of classes; FFCSE_block omitted
 # - FFCResNetBlock: simplified from LaMa's FFCResnetBlock (fixed 0.5 global ratio, no spatial
 #   transform or inline mode); ConcatTupleLayer copied from LaMa; SplitDataLayer added
+# - activation_layer is a module instance (default None: identity)
 # - code reformatted with ruff
 
 import torch
@@ -171,7 +172,7 @@ class FFC_BN_ACT(nn.Module):
         groups=1,
         bias=False,
         norm_layer=nn.BatchNorm2d,
-        activation_layer=nn.Identity,
+        activation_layer=None,
         enable_lfu=True,
         **kwargs,
     ):
@@ -195,8 +196,9 @@ class FFC_BN_ACT(nn.Module):
         self.bn_l = lnorm(int(out_channels * (1 - ratio_gout)))
         self.bn_g = gnorm(int(out_channels * ratio_gout))
 
-        lact = nn.Identity if ratio_gout == 1 else activation_layer
-        gact = nn.Identity if ratio_gout == 0 else activation_layer
+        act = nn.Identity() if activation_layer is None else activation_layer
+        lact = nn.Identity() if ratio_gout == 1 else act
+        gact = nn.Identity() if ratio_gout == 0 else act
         self.act_l = lact
         self.act_g = gact
 
@@ -208,7 +210,7 @@ class FFC_BN_ACT(nn.Module):
 
 
 class FFCResNetBlock(nn.Module):
-    def __init__(self, channels, norm_layer=nn.BatchNorm2d, activation_layer=nn.Identity, **kwargs):
+    def __init__(self, channels, norm_layer=nn.BatchNorm2d, activation_layer=None, **kwargs):
         super().__init__()
 
         self.conv1 = FFC_BN_ACT(

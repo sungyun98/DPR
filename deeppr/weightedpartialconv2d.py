@@ -169,7 +169,7 @@ class WeightedPartialConv2d_BN_ACT(nn.Module):
         bias=False,
         return_mask=True,
         norm_layer=nn.BatchNorm2d,
-        activation_layer=nn.Identity,
+        activation_layer=None,
         **kwargs,
     ):
         super().__init__()
@@ -189,7 +189,7 @@ class WeightedPartialConv2d_BN_ACT(nn.Module):
         self.return_mask = return_mask
 
         self.bn = norm_layer(out_channels)
-        self.act = activation_layer
+        self.act = nn.Identity() if activation_layer is None else activation_layer
 
     def forward(self, x):
         assert type(x) is tuple, "Input should be a tuple of two tensors: image and mask."
