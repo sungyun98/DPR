@@ -31,7 +31,7 @@ class Adapter(_LegacyAdapter):
         torch.set_num_threads(1)
         if F64:
             torch.set_default_dtype(torch.float64)
-        from phaseretrieval import PhaseRetrieval
+        from phaseretrieval import PhaseRetrieval, align_object
 
         import deeppr
         from deeppr import weightedpartialconv2d
@@ -39,6 +39,7 @@ class Adapter(_LegacyAdapter):
         self.dpr = deeppr
         self.WeightedPartialConv2d = weightedpartialconv2d.WeightedPartialConv2d
         self.PhaseRetrieval = PhaseRetrieval
+        self.align_object = align_object
         self.notes = list(self.notes) + [f"phaseretrieval imported from {pr_root}"]
         self._models = {}
         self._demo = None
@@ -54,3 +55,8 @@ class Adapter(_LegacyAdapter):
         with torch.no_grad():
             out, path = it(iteration, phase, toggle=toggle, **dict(info))
         return out[:, 0].numpy(), path.numpy()
+
+    # ---- loss.py: CombinedLoss aligns with phaseretrieval.align_object ---------------------
+    def loss_align_obj(self, output, target, limit=32):
+        assert limit == max(output.shape[-2:]) // 2, "align_object uses limit = max(H, W) // 2"
+        return self.align_object(torch.from_numpy(output), torch.from_numpy(target)).numpy()

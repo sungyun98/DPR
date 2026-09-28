@@ -9,6 +9,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from phaseretrieval import align_object
 from torch import Tensor
 from torchvision import models, transforms
 from torchvision.transforms import InterpolationMode
@@ -205,7 +206,7 @@ class CombinedLoss(nn.Module):
 
     The weighted sum of the L1 loss, the gradient loss (`grad_loss`), the VGG19 perceptual
     loss of the last four blocks (`VGGLoss`) and the Fourier amplitude loss (`fourier_loss`),
-    computed after aligning the output to the target (`align_obj`).
+    computed after aligning the output to the target (`phaseretrieval.align_object`).
 
     Parameters
     ----------
@@ -223,61 +224,6 @@ class CombinedLoss(nn.Module):
         super().__init__()
         self.VGGLoss = VGGLoss(block_range=(4, 5), style=False, device=device)
         self.coeffs = coeffs
-
-    @staticmethod
-    def align_obj(output: Tensor, target: Tensor, limit: int = 32) -> Tensor:
-        """Align objects to targets by translation and 180-degree rotation.
-
-        For each object, the translation (up to ``limit`` pixels) and orientation that
-        maximize the cross-correlation with its target are applied by a circular shift.
-
-        Parameters
-        ----------
-        output : torch.Tensor
-            Real objects of shape ``(N, 1, 64, 64)``; modified in place.
-        target : torch.Tensor
-            Real targets of shape ``(N, 1, 64, 64)``.
-        limit : int, default 32
-            Maximum shift in pixels. The fallback used when no exact maximum is found
-            assumes ``limit=32``.
-
-        Returns
-        -------
-        torch.Tensor
-            The aligned ``output``.
-        """
-        N = output.shape[0]
-
-        xcorr = F.conv2d(output.reshape(1, N, 64, 64), target, padding=limit, groups=N).squeeze(0)
-        xcorrT = F.conv2d(
-            torch.rot90(output, 2, dims=(-2, -1)).reshape(1, N, 64, 64),
-            target,
-            padding=limit,
-            groups=N,
-        ).squeeze(0)
-        vmax = torch.amax(xcorr, dim=(-2, -1))
-        vTmax = torch.amax(xcorrT, dim=(-2, -1))
-
-        for i in range(N):
-            trg = vTmax[i] > vmax[i]
-            if trg:
-                output[i, :, :, :] = torch.rot90(output[i], 2, dims=(-2, -1))
-                dpos = limit - torch.nonzero(xcorrT[i] == vTmax[i]).squeeze()
-            else:
-                dpos = limit - torch.nonzero(xcorr[i] == vmax[i]).squeeze()
-
-            # for failure of equality operation
-            if dpos.numel() == 0:
-                pos = torch.argmax(xcorrT[i] if trg else xcorr[i])
-                dpos = limit - torch.stack([pos // 65, pos % 65])
-
-            # for multiple maximal positions
-            if len(dpos.shape) > 1:
-                dpos = dpos[torch.argmin(torch.sum(torch.abs(dpos), dim=-1))]
-
-            output[i, :, :, :] = torch.roll(output[i], dpos.tolist(), dims=(-2, -1))
-
-        return output
 
     @staticmethod
     def grad_loss(output: Tensor, target: Tensor) -> Tensor:
@@ -334,26 +280,26 @@ class CombinedLoss(nn.Module):
             )
         return loss
 
-    def forward(self, output: Tensor, target: Tensor, align_limit: int = 32) -> Tensor:
+    def forward(self, output: Tensor, target: Tensor, align: bool = True) -> Tensor:
         """Compute the combined loss.
 
         Parameters
         ----------
         output : torch.Tensor
-            Network output of shape ``(N, 1, 64, 64)``; aligned in place.
+            Network output of shape ``(N, 1, 64, 64)``.
         target : torch.Tensor
             Target objects of shape ``(N, 1, 64, 64)``.
-        align_limit : int, default 32
-            Maximum shift of `align_obj`; negative values disable the alignment.
+        align : bool, default True
+            Align the output to the target first (translation up to 32 pixels and twin
+            image, see `phaseretrieval.align_object`).
 
         Returns
         -------
         torch.Tensor
             Scalar loss.
         """
-        if align_limit >= 0:
-            # object align (translation & 180 deg rotation)
-            output = self.align_obj(output, target, limit=align_limit)
+        if align:
+            output = align_object(output, target)
 
         l1_loss = F.l1_loss(output, target)
         grad_loss = self.grad_loss(output, target)

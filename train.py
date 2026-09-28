@@ -135,7 +135,7 @@ class Trainer:
         output = self.model(input, mask, false_scale=True)
 
         if train:
-            loss = self.criterion(output, target, align_limit=32)
+            loss = self.criterion(output, target)
 
             if self.minimizer is not None:
                 with self.model.no_sync():
@@ -144,9 +144,7 @@ class Trainer:
                         self.model.parameters(), max_norm=self.grad_clip
                     )  # gradient clipping
                 self.minimizer.ascent_step()
-                self.criterion(
-                    self.model(input, mask, false_scale=True), target, align_limit=32
-                ).backward()
+                self.criterion(self.model(input, mask, false_scale=True), target).backward()
                 nn.utils.clip_grad_norm_(
                     self.model.parameters(), max_norm=self.grad_clip
                 )  # gradient clipping
@@ -159,7 +157,7 @@ class Trainer:
                 self.optimizer.step()
 
         else:
-            loss = self.criterion(output, target, align_limit=32)
+            loss = self.criterion(output, target)
 
         return loss.data
 
