@@ -57,5 +57,6 @@ iterative algorithms and the demo pipeline). NaN positions and error types must 
   of a four-dimensional tensor).
 
 Intended changes of results are listed with their reason in `EXPECTED_CHANGES`
-(`cases_dpr.py`); for implementations other than the one that produced the references, such
-cases are reported as expected failures.
+(`cases_dpr.py`), for a whole case or for some of its result keys (the other keys must still
+match); for implementations other than the one that produced the references, such cases are
+reported as expected failures.
