@@ -37,18 +37,7 @@ versions used for the paper (Python 3.11.5, PyTorch 2.1.0, CUDA 11.8) are availa
 
 3. We used NVIDIA Irregular Mask Dataset from https://research.nvidia.com/labs/adlr/publication/partialconv-inpainting. Please check the file paths in 'deeppr.dataset.IrregularMaskDataset' when using 'generate_dataset.ipynb'. Other datasets, EMNIST and CIFAR-100, are from torchvision library.
 
-4. We imported following codes.
-
-    > Partial Convolution from https://github.com/NVIDIA/partialconv
-    > 
-    > Fast Fourier Convolution (FFC) from https://github.com/pkumivision/FFC
-    > 
-    > FFC ResNet Block from https://github.com/advimman/lama
-    > 
-    > Partial Convolution from https://github.com/NVIDIA/partialconv
-    > 
-    > Adaptive Sharpness-Aware Minimization (ASAM) from https://github.com/SamsungLabs/ASAM
-    > 
+4. Third-party code included in `deeppr` is listed in [License](#license).
 
 5. When using DPR or weighted partial convolution, please cite our paper with proper references.
 
@@ -56,3 +45,20 @@ versions used for the paper (Python 3.11.5, PyTorch 2.1.0, CUDA 11.8) are availa
     > 
 
 6. Contact: Sung Yun Lee, sungyun98@postech.ac.kr
+
+## License
+
+This code is released under the BSD 2-Clause License (`LICENSE.txt`), except for the
+third-party code below, which keeps its original license (full text in `LICENSES/`); the
+changes made are stated at the top of each file.
+
+| File | Source | License |
+|---|---|---|
+| `deeppr/weightedpartialconv2d.py` | derived from [NVIDIA/partialconv](https://github.com/NVIDIA/partialconv) `models/partialconv2d.py` | BSD 3-Clause, Copyright (c) 2018 NVIDIA Corporation |
+| `deeppr/loss.py` (`VGG19Partial`, `gram_matrix`) | adapted from [NVIDIA/partialconv](https://github.com/NVIDIA/partialconv) `models/loss.py` | BSD 3-Clause, Copyright (c) 2019 NVIDIA Corporation |
+| `deeppr/ffc.py` (FFC layers) | modified from [pkumivision/FFC](https://github.com/pkumivision/FFC) `model_zoo/ffc.py` | Apache 2.0, Copyright 2022 Lu Chi |
+| `deeppr/ffc.py` (`FFCResNetBlock`, `ConcatTupleLayer`) | modified from [advimman/lama](https://github.com/advimman/lama) `saicinpainting/training/modules/ffc.py` | Apache 2.0, Copyright 2021 Samsung Research |
+| `deeppr/asam.py` | copied from SamsungLabs/ASAM `asam.py` (repository no longer online; [Software Heritage archive](https://archive.softwareheritage.org/swh:1:rev:f156a680171db16d551c0d85cba2514fa3bff6a2)) | Apache 2.0, Copyright 2021 Samsung Research |
+
+The pretrained VGG19 weights used by the perceptual loss are downloaded by torchvision at run
+time and are not distributed with this repository.

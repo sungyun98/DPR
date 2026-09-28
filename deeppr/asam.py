@@ -1,4 +1,7 @@
 # Adaptive Sharpness-Aware Minimization (ASAM) from https://github.com/SamsungLabs/ASAM
+#   (asam.py, archived at Software Heritage swh:1:rev:f156a680171db16d551c0d85cba2514fa3bff6a2)
+#   Copyright 2021 Samsung Research, Apache License 2.0 (LICENSES/ASAM-Apache-2.0.txt)
+#   Unmodified apart from this header.
 
 import torch
 from collections import defaultdict

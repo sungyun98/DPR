@@ -8,8 +8,8 @@ version = "2.0.0"
 description = "Deep phase retrieval (DPR) network for single-pulse coherent diffraction imaging with X-ray free-electron lasers"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "BSD-2-Clause"
-license-files = ["LICENSE.txt"]
+license = "BSD-2-Clause AND BSD-3-Clause AND Apache-2.0"
+license-files = ["LICENSE.txt", "LICENSES/*.txt"]
 authors = [{ name = "Sung Yun Lee", email = "sungyun98@g.postech.edu" }]
 keywords = ["phase retrieval", "coherent diffraction imaging", "deep learning", "XFEL"]
 classifiers = [

@@ -1,5 +1,16 @@
 # Fast Fourier Convolution (FFC) from https://github.com/pkumivision/FFC
+#   (model_zoo/ffc.py at ddf26ddd1d22b2062b231311a23c9111db2997ac)
+#   Copyright 2022 Lu Chi, Apache License 2.0 (LICENSES/FFC-Apache-2.0.txt)
 # FFC ResNet Block from https://github.com/advimman/lama
+#   (saicinpainting/training/modules/ffc.py at 552cd55c94c9a143080aa855e7a8bdb2998d55bb)
+#   Copyright 2021 Samsung Research, Apache License 2.0 (LICENSES/LaMa-Apache-2.0.txt)
+#
+# Modified by Sung Yun Lee:
+# - FourierUnit: torch.rfft/torch.irfft replaced by torch.fft.rfft2/irfft2 (norm='ortho')
+# - FFC, FFC_BN_ACT: extra keyword arguments passed to the convolutions; activation layers
+#   are passed as instances instead of classes; FFCSE_block omitted
+# - FFCResNetBlock: simplified from LaMa's FFCResnetBlock (fixed 0.5 global ratio, no spatial
+#   transform or inline mode); ConcatTupleLayer copied from LaMa; SplitDataLayer added
 
 import torch
 import torch.nn as nn

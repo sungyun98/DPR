@@ -1,4 +1,7 @@
-# Reference = https://github.com/NVIDIA/partialconv/blob/master/models/loss.py
+# VGG19Partial and gram_matrix adapted from https://github.com/NVIDIA/partialconv
+#   (models/loss.py at 3f869a3a096d8a25de66e5b8b2bc0dc55db43f38; VGG16Partial rewritten for VGG19)
+#   Copyright (c) 2019, NVIDIA CORPORATION, BSD 3-Clause License
+#   (LICENSES/partialconv-BSD-3-Clause.txt)
 
 import torch
 import torch.nn as nn

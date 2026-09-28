@@ -1,4 +1,8 @@
-# Oiginal partial Convolution from https://github.com/NVIDIA/partialconv
+# Derived from the partial convolution of https://github.com/NVIDIA/partialconv
+#   (models/partialconv2d.py at a99cd7cb9f6469c02181d9aa34fe5abd95fb0154)
+#   Copyright (c) 2018, NVIDIA CORPORATION, BSD 3-Clause License
+#   (LICENSES/partialconv-BSD-3-Clause.txt)
+#   Modified by Sung Yun Lee: mask weighting by the Guinier-Porod model
 # Guinier-Porod model from https://doi.org/10.1107/S0021889810015773
 
 import numpy as np
