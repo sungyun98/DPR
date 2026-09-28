@@ -44,7 +44,7 @@ versions used for the paper (Python 3.11.5, PyTorch 2.1.0, CUDA 11.8) are availa
     > https://doi.org/10.1038/s41524-025-01569-7
     > 
 
-6. Contact: Sung Yun Lee, sungyun98@postech.ac.kr
+6. Contact: Sung Yun Lee, sungyun98@g.postech.edu
 
 ## License
 
