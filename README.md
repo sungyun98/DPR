@@ -11,26 +11,23 @@ DPR is a deep neural network for direct phase retrievals of single-particle diff
 
 ## Requirements
 
-> Python = 3.11.5
-> 
-> NumPy = 1.26.0
-> 
-> SciPy = 1.11.3
-> 
-> scikit-image = 0.20.0
-> 
-> PIL = 10.0.1
-> 
-> h5py = 3.9.0
-> 
-> PyTorch = 2.1.0
-> 
-> Torchvision = 0.16.0
-> 
-> CUDA = 11.8
-> 
-> cuDNN = 8.7.0
-> 
+Tested with Python 3.12, PyTorch 2.14.0 and torchvision 0.29.0 (CUDA 12.6 builds), NumPy 2.5.3,
+SciPy 1.18.1, scikit-image 0.26.0, Pillow 12.3.0 and h5py 3.16.0; the exact versions are listed
+in `requirements.txt`. The phase retrieval algorithms come from the
+[PhaseRetrieval](https://github.com/sungyun98/PhaseRetrieval) package (`phaseretrieval`), which
+`requirements.txt` installs from GitHub. Minimum versions: Python 3.10, PyTorch 2.1,
+torchvision 0.16, NumPy 1.26, SciPy 1.11, scikit-image 0.22.
+
+```bash
+conda env create -f environment.yml
+# or, in an existing environment:
+pip install -r requirements.txt && pip install -e .
+```
+
+The PyTorch builds in `requirements.txt` use CUDA 12.6 and run with NVIDIA drivers 525 or newer;
+replace `cu126` with `cpu` for a CPU-only installation. The original code and the library
+versions used for the paper (Python 3.11.5, PyTorch 2.1.0, CUDA 11.8) are available at the tag
+`v1.0-legacy`.
 
 ## Notes
 
