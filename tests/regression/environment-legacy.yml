@@ -1,0 +1,25 @@
+# Environment used to generate references/ from the original code (tag v1.0-legacy).
+# Library versions as listed in the original README, CPU-only builds of PyTorch.
+#   conda env create -f tests/regression/environment-legacy.yml
+#   conda env config vars set -n dpr-legacy LD_LIBRARY_PATH=$CONDA_PREFIX/lib
+# (the last step makes pip-installed torch use the environment's libstdc++, which the
+#  conda-forge ICU library pulled in by h5py requires)
+name: dpr-legacy
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11.5
+  - numpy=1.26.0
+  - scipy=1.11.3
+  - scikit-image=0.20.0
+  - pillow=10.0.1
+  - h5py=3.9.0
+  - hdf5=1.14.2
+  - matplotlib-base=3.8.0
+  - tqdm
+  - pytest
+  - pip
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cpu
+      - torch==2.1.0+cpu
+      - torchvision==0.16.0+cpu

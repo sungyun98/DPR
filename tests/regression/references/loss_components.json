@@ -1,0 +1,32 @@
+{
+ "meta": {
+  "adapter": "dpr_legacy",
+  "adapter_notes": [
+   "torch.set_num_threads(1) for bit-reproducible CPU results",
+   "checkpoints loaded with map_location='cpu' (as demo.ipynb does with its device)"
+  ],
+  "code": "v1.0-legacy-dirty (9eefa5a5d8481f825479a4f664d5792d670aac14)",
+  "generated": "2026-09-28T15:29:44",
+  "environment": {
+   "python": "3.11.5",
+   "platform": "Linux-5.14.0-570.17.1.el9_6.x86_64-x86_64-with-glibc2.34",
+   "numpy": "1.26.0",
+   "scipy": "1.11.3",
+   "skimage": "0.20.0",
+   "torch": "2.1.0+cpu",
+   "torchvision": "0.16.0+cpu",
+   "PIL": "10.0.1",
+   "h5py": "3.9.0"
+  },
+  "case": "loss_components",
+  "seconds": 0.36
+ },
+ "values": {
+  "grad_loss": 0.2733669579029083,
+  "fourier_loss_log": 0.12940537929534912,
+  "fourier_loss_amp": 0.06529118120670319
+ },
+ "arrays": [
+  "align_obj"
+ ]
+}
