@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deeppr"
+version = "2.0.0"
+description = "Deep phase retrieval (DPR) network for single-pulse coherent diffraction imaging with X-ray free-electron lasers"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "BSD-2-Clause"
+license-files = ["LICENSE.txt"]
+authors = [{ name = "Sung Yun Lee", email = "sungyun98@g.postech.edu" }]
+keywords = ["phase retrieval", "coherent diffraction imaging", "deep learning", "XFEL"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+# phaseretrieval is not on PyPI: install it from GitHub first (see requirements.txt or README).
+# PyTorch is not pinned to a CUDA build; install the build matching your driver first.
+dependencies = [
+    "phaseretrieval>=2.0",
+    "torch>=2.1",
+    "torchvision>=0.16",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "scikit-image>=0.22",
+    "pillow",
+    "h5py",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+notebook = ["matplotlib", "jupyterlab"]
+
+[project.urls]
+Repository = "https://github.com/sungyun98/DPR"
+Paper = "https://doi.org/10.1038/s41524-025-01569-7"
+
+[tool.setuptools]
+packages = ["deeppr"]
