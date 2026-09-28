@@ -131,7 +131,7 @@ class Trainer():
         
     def _load_checkpoint(self, path_ckp):
         loc = f'cuda:{self.local_rank}'
-        ckp = torch.load(path_ckp, map_location=loc)
+        ckp = torch.load(path_ckp, map_location=loc, weights_only=True)
             
         self.epochs_run = ckp['epochs_run'] + 1
         self.loss_hist = ckp['loss_hist']
