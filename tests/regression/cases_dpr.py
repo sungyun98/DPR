@@ -134,7 +134,7 @@ def make_pr_case(name):
     return case
 
 
-# ---- pretrained network -----------------------------------------------------------------------------
+# ---- pretrained network --------------------------------------------------------------------------
 def case_network_experimental(api):
     inp, mask = api.demo()["prepare_data"](np.array(loadmat(EXP_PATTERN)["pattern"]), bin=None)
     inp, mask = inp.numpy(), mask.numpy()
@@ -210,7 +210,7 @@ def case_dataset_custom_h5(api):
     return {"input": inp, "target": tgt, "mask": msk}
 
 
-# ---- loss.py (no pretrained VGG19 needed) ---------------------------------------------------------
+# ---- loss.py (no pretrained VGG19 needed) --------------------------------------------------------
 def case_loss_components(api):
     target = np.stack([synthetic_object(s) for s in (51, 52)])[:, None]
     output = np.roll(target, (3, -2), axis=(-2, -1)).copy()
@@ -225,7 +225,7 @@ def case_loss_components(api):
     }
 
 
-# ---- scheduler.py / asam.py ---------------------------------------------------------------------------
+# ---- scheduler.py / asam.py ----------------------------------------------------------------------
 def case_scheduler(api):
     return {
         "train_py_config": api.scheduler_lrs(
@@ -252,7 +252,7 @@ def case_minimizers(api):
     return out
 
 
-# ---- weightedpartialconv2d.py ------------------------------------------------------------------------------
+# ---- weightedpartialconv2d.py --------------------------------------------------------------------
 def case_weighted_pconv(api):
     rs = np.random.RandomState(8)
     weight, bias = rs.randn(4, 1, 3, 3).astype(np.float32), rs.randn(4).astype(np.float32)
@@ -267,7 +267,7 @@ def case_weighted_pconv(api):
     return out
 
 
-# ---- registry ------------------------------------------------------------------------------------------------
+# ---- registry ------------------------------------------------------------------------------------
 CASES = {"fft_helpers": case_fft_helpers}
 for _name in PR_CONFIGS:
     CASES["pr_" + _name] = make_pr_case(_name)
@@ -304,16 +304,17 @@ F64_TOLERANCE = 1e-9
 F32_NOISE_FACTOR = 3  # float32 tolerance >= this factor x the legacy code's own float32 error
 
 RNG_DEPENDENT = {
-    "dataset_generate_diffraction": "GenerateDiffraction draws coherence, flux and Poisson/Gaussian noise from the "
-    "torch RNG; exact values are only reproducible with the same torch version",
+    "dataset_generate_diffraction": "GenerateDiffraction draws coherence, flux and "
+    "Poisson/Gaussian noise from the torch RNG; exact values are only reproducible with the "
+    "same torch version",
 }
 _SW_CENTRED = (
     "the shared phaseretrieval package centres the ShrinkWrap Gaussian kernel; DPR's copy used an "
     "ifftshifted kernel that split the Gaussian into lobes about +-ceil(2 * sigma_initial) px apart"
 )
 EXPECTED_CHANGES = {
-    "pr_RAAR_linear_NLL": "DPR's copy summed the NLL over five dimensions of a 4-D tensor and raised IndexError; "
-    "the shared phaseretrieval package sums over (1, 2, 3)",
+    "pr_RAAR_linear_NLL": "DPR's copy summed the NLL over five dimensions of a 4-D tensor and "
+    "raised IndexError; the shared phaseretrieval package sums over (1, 2, 3)",
     "pr_HIO_shrinkwrap": _SW_CENTRED,
     "pr_GPS-R_shrinkwrap": _SW_CENTRED,
 }
