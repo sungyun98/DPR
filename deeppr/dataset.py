@@ -247,7 +247,7 @@ def GenerateDiffraction(
 
 
 class CustomDataset(Dataset):
-    """Dataset of diffraction patterns stored in an HDF5 file by ``generate_dataset.ipynb``.
+    """Dataset of diffraction patterns stored in an HDF5 file by ``generate_dataset.py``.
 
     The file holds the datasets ``input`` (float32, ``(M, 1, 512, 512)``), ``target``
     (float32, ``(M, 1, 64, 64)``) and ``mask`` (bool, ``(M, 1, 512, 512)``). The file is

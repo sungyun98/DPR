@@ -71,8 +71,15 @@ Inputs are intensities in photon counts with the zero frequency at the centre, a
 True (or 1) for valid pixels. `pretrained/` holds two checkpoints, `param_dpr0.pt` and
 `param_dpr1.pt`; `demo.ipynb` uses `param_dpr1.pt`.
 
-To train the network, generate the datasets with `generate_dataset.ipynb` and run `train.py` with
-torchrun on one or more GPUs (the launch commands are in its docstring).
+To train the network, generate the datasets and run `train.py` with torchrun on one or more
+GPUs (the launch commands are in its docstring):
+
+```bash
+python generate_dataset.py train   # ./datasets/dataset_train_n96k.h5
+python generate_dataset.py valid   # ./datasets/dataset_valid_n12k.h5
+python generate_dataset.py test    # ./datasets/dataset_test_n12k.h5 (for evaluation)
+torchrun --standalone --nproc_per_node=4 train.py 600
+```
 
 ## Notes
 
@@ -85,7 +92,7 @@ torchrun on one or more GPUs (the launch commands are in its docstring).
 
 3. We used NVIDIA Irregular Mask Dataset from
    https://research.nvidia.com/labs/adlr/publication/partialconv-inpainting. Please check the
-   file paths in `deeppr.dataset.IrregularMaskDataset` when using `generate_dataset.ipynb`.
+   file paths in `deeppr.dataset.IrregularMaskDataset` when using `generate_dataset.py`.
    Other datasets, EMNIST and CIFAR-100, are from torchvision library.
 
 4. Third-party code included in `deeppr` is listed in [License](#license).

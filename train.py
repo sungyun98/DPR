@@ -1,6 +1,6 @@
 """Train the DPR network with DistributedDataParallel on one or more nodes.
 
-The training and validation sets are the HDF5 files written by ``generate_dataset.ipynb``
+The training and validation sets are the HDF5 files written by ``generate_dataset.py``
 (``./datasets/dataset_train_n96k.h5`` and ``./datasets/dataset_valid_n12k.h5``). Rank 0
 writes ``./checkpoint.pt`` every 10 epochs, from which a restarted run resumes, and
 ``./model_min.pt`` whenever the validation loss reaches a new minimum after epoch 120.
