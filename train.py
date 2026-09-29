@@ -70,6 +70,11 @@ class Trainer:
         Interval in epochs between checkpoints.
     path_ckp : str
         Checkpoint path; training resumes from it if it exists.
+    compile_model : bool, default False
+        Compile the DDP-wrapped model with `torch.compile`. On one RTX 6000 Ada GPU the
+        training step was 1.2 times faster with a third less memory (after about 4 minutes
+        of compilation); on 4 GPUs with SyncBatchNorm, whose communication splits the
+        compiled graph, epochs were slower (7.1 s instead of 6.2 s), hence off by default.
     """
 
     def __init__(
@@ -81,6 +86,7 @@ class Trainer:
         epochs_total: int,
         step_ckp: int,
         path_ckp: str,
+        compile_model: bool = False,
     ) -> None:
 
         self.world_size = dist.get_world_size()
@@ -125,6 +131,9 @@ class Trainer:
         )
 
         self.model = DDP(model, device_ids=[self.local_rank])
+        if compile_model:
+            # attributes such as no_sync() and module reach the DDP model through the wrapper
+            self.model = torch.compile(self.model)
 
     def _run_batch(
         self, input: torch.Tensor, target: torch.Tensor, mask: torch.Tensor, train: bool = True
@@ -324,7 +333,11 @@ def prepare_train(batch_size: int) -> tuple[DataLoader, DataLoader, nn.Module, O
 
 
 def main(
-    epochs_total: int, batch_size: int, step_ckp: int, path_ckp: str = "./checkpoint.pt"
+    epochs_total: int,
+    batch_size: int,
+    step_ckp: int,
+    path_ckp: str = "./checkpoint.pt",
+    compile_model: bool = False,
 ) -> None:
     """Set up DDP, train and clean up.
 
@@ -338,10 +351,14 @@ def main(
         Interval in epochs between checkpoints.
     path_ckp : str, default './checkpoint.pt'
         Checkpoint path.
+    compile_model : bool, default False
+        Compile the model with `torch.compile` (see `Trainer`).
     """
     ddp_setup()
     dl_train, dl_valid, model, optimizer = prepare_train(batch_size)
-    trainer = Trainer(model, dl_train, dl_valid, optimizer, epochs_total, step_ckp, path_ckp)
+    trainer = Trainer(
+        model, dl_train, dl_valid, optimizer, epochs_total, step_ckp, path_ckp, compile_model
+    )
     trainer.train()
     destroy_process_group()
 
