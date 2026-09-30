@@ -55,6 +55,9 @@ iterative algorithms and the demo pipeline). NaN positions and error types must 
 
 - `pr_RAAR_linear_NLL`: the NLL error metric raises `IndexError` (it sums over five dimensions
   of a four-dimensional tensor).
+- `dataset_generate_diffraction`: the partial-coherence kernel of `GenerateDiffraction` is
+  centred on the grid instead of on the zero lag of the autocorrelation (fixed in the current
+  code, so this case is an expected change).
 
 Intended changes of results are listed with their reason in `EXPECTED_CHANGES`
 (`cases_dpr.py`), for a whole case or for some of its result keys (the other keys must still

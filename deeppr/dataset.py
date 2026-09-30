@@ -187,11 +187,15 @@ def GenerateDiffraction(
 
     The object is zero-padded to 512 x 512 and its diffraction intensity is blurred by
     partial spatial coherence (Gaussian Schell model: the autocorrelation is multiplied by
-    ``exp(-r**2 / (2 * l)**2)`` with ``l`` equal to ``l_coh`` times a random factor in
-    ``[0.9, 1.1)``; temporal coherence is negligible for XFELs). The intensity is scaled to a
-    random total photon count in ``[1, 10) * 10**ph_ord``, and Poisson noise followed by
-    Gaussian noise with a FWHM of 1 photon is added. Random numbers come from the global
-    PyTorch generator.
+    ``exp(-r**2 / (2 * l)**2)``, where ``r`` is the lag and ``l`` is ``l_coh`` times a random
+    factor in ``[0.9, 1.1)``; temporal coherence is negligible for XFELs). Earlier versions,
+    including ``v1.0-legacy`` used for the paper, centred the kernel on the grid instead of on
+    the zero lag: it weighted the autocorrelation at the lag ``(dy, dx)`` by
+    ``exp(-((256 - |dy|)**2 + (256 - |dx|)**2) / (2 * l)**2)``, which grows with the lag.
+
+    The intensity is scaled to a random total photon count in ``[1, 10) * 10**ph_ord``, and
+    Poisson noise followed by Gaussian noise with a FWHM of 1 photon is added. Random numbers
+    come from the global PyTorch generator.
 
     Parameters
     ----------
@@ -222,7 +226,8 @@ def GenerateDiffraction(
     ls = torch.linspace(-256, 255, steps=512)
     m = torch.meshgrid(ls, ls, indexing="ij")
     l_sq = m[0] ** 2 + m[1] ** 2
-    l_sq = l_sq[None, None, ...].to(device)
+    # _ifft2 returns the autocorrelation with the zero lag at (0, 0), not at the centre
+    l_sq = torch.fft.ifftshift(l_sq, dim=(-2, -1))[None, None, ...].to(device)
     sig_mu = l_coh * (
         0.9 + 0.2 * torch.rand(inten.size(0), 1, 1, 1, device=device)
     )  # 10% deviation

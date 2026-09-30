@@ -317,4 +317,8 @@ EXPECTED_CHANGES = {
     "raised IndexError; the shared phaseretrieval package sums over (1, 2, 3)",
     "pr_HIO_shrinkwrap": _SW_CENTRED,
     "pr_GPS-R_shrinkwrap": _SW_CENTRED,
+    "dataset_generate_diffraction": "the Gaussian Schell-model kernel is ifftshifted to the zero "
+    "lag of the autocorrelation; the original code centred it on the grid, which weighted the "
+    "autocorrelation by a function growing with the lag (for l_coh = 200: 0.44 at zero lag, "
+    "0.63 at (63, 63))",
 }

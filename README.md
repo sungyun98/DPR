@@ -113,6 +113,12 @@ outputs of `v1.0-legacy`, including the pretrained networks and the `demo.ipynb`
 two options of the phase retrieval code that the demo does not use: the NLL error metric with
 RAAR, which raised an IndexError, and ShrinkWrap, which now uses a centred Gaussian kernel.
 
+The partial-coherence model of `GenerateDiffraction` was corrected after the paper: the
+Gaussian Schell-model kernel is now applied at the zero lag of the autocorrelation, whereas
+`v1.0-legacy` centred it on the 512 x 512 grid, so that it weighted large lags more than small
+ones instead of blurring the pattern. The pretrained networks were trained on datasets from
+`v1.0-legacy`; datasets from the current `generate_dataset.py` differ from them.
+
 ## Citation
 
 When using DPR or weighted partial convolution, please cite:
